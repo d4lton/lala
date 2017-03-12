@@ -1,0 +1,123 @@
+<html>
+  <head>
+    <script src='Lexer.js'></script>
+    <script src='Parser.js'></script>
+    <script src='Interpreter.js'></script>
+    <script>
+
+var lexicon = {
+  ignore: {
+    startTest: /[ \t\n;]/,
+    test: /[ \t\n;]/
+  },
+  identifier: {
+    startTest: /[a-zA-Z]/,
+    test: /[a-zA-Z_]/
+  },
+  number: {
+    startTest: /[0-9\-]/,
+    test: /[0-9\.]/
+  },
+  operator: {
+    startTest: /[\+\-\*\/><=|&!]/,
+    test: /[\+\-\*\/><=|&!]/,
+    values: ['+', '-', '*', '/', '=', '==', '!=', '>=', '<=', '<', '>', '||', '&&']
+  },
+  parenthesis: {
+    startTest: /[\(\)]/
+  },
+  braces: {
+    startTest: /[{}]/
+  }
+};
+
+var grammar = {
+  operators: [
+    {
+      value: '+',
+      result: 'MathExpression'
+    },
+    {
+      value: '-',
+      result: 'MathExpression'
+    },
+    {
+      value: '*',
+      result: 'MathExpression'
+    },
+    {
+      value: '/',
+      result: 'MathExpression'
+    },
+    {
+      value: '==',
+      result: 'ComparisonExpression'
+    },
+    {
+      value: '!=',
+      result: 'ComparisonExpression'
+    },
+    {
+      value: '<=',
+      result: 'ComparisonExpression'
+    },
+    {
+      value: '>=',
+      result: 'ComparisonExpression'
+    },
+    {
+      value: '>',
+      result: 'ComparisonExpression'
+    },
+    {
+      value: '<',
+      result: 'ComparisonExpression'
+    },
+    {
+      value: '||',
+      result: 'LogicalExpression'
+    },
+    {
+      value: '&&',
+      result: 'LogicalExpression'
+    },
+    {
+      value: '=',
+      result: 'AssignmentExpression'
+    }
+  ],
+  expressions: [
+    {
+      result: 'IfStatement',
+      rules: [
+        {type: 'identifier', value: 'if'},
+        {type: 'parenthesis', value: '('},
+        {parse: 'term', result: 'test'},
+        {type: 'parenthesis', value: ')'},
+        {parse: 'expression', result: 'consequence'},
+        {type: 'identifier', value: 'else', optional: true},
+        {parse: 'expression', result: 'alternate'}
+      ]
+    },
+    {
+      result: 'CallStatement',
+      rules: [
+        {type: 'identifier', values: ['hide', 'show']},
+        {type: 'parenthesis', value: '('},
+        {type: 'parenthesis', value: ')'}
+      ]
+    }
+  ]
+};
+
+var text = 'a=3; b=10; j=100; if ((a+3)==2||(dogs!=cool)) {b=((j*12)+1)}else {b=4; hide();}';
+
+var lexer = new Lexer(lexicon, text);
+var parser = new Parser(grammar, lexer);
+var interpreter = new Interpreter(parser);
+
+    </script>
+  </head>
+  <body>
+  </body>
+</html>
