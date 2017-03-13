@@ -1,10 +1,10 @@
 {
   "private": true,
-  "name": "Hemp",
+  "name": "Lala",
   "version": "1.0.0",
-  "description": "A lightweight HTML Canvas with object model",
-  "homepage": "https://github.com/d4lton/Hemp",
-  "repository": "d4lton/Hemp",
+  "description": "A simple language lexical analyzer, parser and interpreter",
+  "homepage": "https://github.com/d4lton/lala",
+  "repository": "d4lton/lala",
   "author": "Dana Basken <dbasken@gmail.com>",
   "contributors": [
     "Konstantin Tarkus <hello@tarkus.me>",
@@ -12,8 +12,8 @@
   ],
   "license": "MIT",
   "keywords": [],
-  "main": "Hemp.js",
-  "jsnext:main": "Hemp.es.js",
+  "main": "Lala.js",
+  "jsnext:main": "Lala.es.js",
   "babel": {
     "presets": [
       "latest",

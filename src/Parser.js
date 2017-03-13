@@ -84,7 +84,7 @@ class Parser {
   expression() {
 
     for (var i = 0; i < this.grammar.expressions.length; i++) {
-      var rules = grammar.expressions[i].rules;
+      var rules = this.grammar.expressions[i].rules;
       if (rules && rules.length > 0) {
         var valueMatch = false;
         if (rules[0].value) {
@@ -95,7 +95,7 @@ class Parser {
         }
         if (rules[0].type === this.token.type && valueMatch) {
           var node = {
-            type: grammar.expressions[i].result,
+            type: this.grammar.expressions[i].result,
             value: this.token.value
           };
           for (var j = 0; j < rules.length; j++) {
