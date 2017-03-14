@@ -3,16 +3,45 @@
     <script src='dist/Lala.umd.js'></script>
     <script>
 
-      var text = 'a=3; b=10; j=100; if ((a+3)==2||(dogs!=cool)) {b=((j*12)+1)}else {b=4; hide();}';
-      window.addEventListener("load", function(event) {
+      function run() {
+        var output = document.getElementById('output');
+        output.value = '';
+        var text = document.getElementById('text');
         var lala = new Lala();
-        lala.run(text, {}, function(name) {
-          console.log('function called: ' + name);
-        });
-      });
+        try {
+          var result = lala.run(text.value, {}, function(name) {
+            output.value += "internal function '" + name + "' called\n";
+          });
+          output.value += JSON.stringify(result, null, 2);
+        } catch (e) {
+          if (e instanceof Lala.ParseError) {
+            console.log(e);
+            text.setSelectionRange(e.token.start, e.token.end + 1);
+            text.focus();
+          }
+          if (e instanceof Lala.InterpretError) {
+            console.log(e);
+            text.setSelectionRange(e.node.start, e.node.end + 1);
+            text.focus();
+          }
+        }
+      }
 
     </script>
   </head>
   <body>
+    <textarea id='text' style='height: 200px; width: 100%;'>
+a = 3;
+b = 10; 
+j = 100;
+if ((a + 3) == 2 || (dogs != cool)) {
+  b = ((j * 12) + 1)
+} else {
+  b = 4;
+  hide();
+}
+    </textarea>
+    <input type='button' value='Run' onclick='run();'/>
+    <textarea id='output' style='height: 200px; width: 100%;'></textarea>
   </body>
 </html>

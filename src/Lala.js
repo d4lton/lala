@@ -1,6 +1,8 @@
 import Parser from './Parser.js';
 import Lexer from './Lexer.js';
 import Interpreter from './Interpreter.js';
+import ParseError from './ParseError.js';
+import InterpretError from './InterpretError.js';
 
 class Lala {
 
@@ -22,7 +24,7 @@ class Lala {
       operator: {
         startTest: /[\+\-\*\/><=|&!]/,
         test: /[\+\-\*\/><=|&!]/,
-        values: ['+', '-', '*', '/', '=', '==', '!=', '>=', '<=', '<', '>', '||', '&&']
+        values: ['=', '+', '-', '*', '/', '==', '!=', '>=', '<=', '<', '>', '||', '&&']
       },
       parenthesis: {
         startTest: /[\(\)]/
@@ -73,14 +75,26 @@ class Lala {
     };
 
   };
+
+  check(text, variables) {
+    var lexer = new Lexer(this.lexicon, text);
+    var parser = new Parser(this.grammar, lexer);
+    return parser.parse();
+  };
   
   run(text, variables, callback) {
     var lexer = new Lexer(this.lexicon, text);
     var parser = new Parser(this.grammar, lexer);
     var interpreter = new Interpreter(parser);
-    return interpreter.run(variables, callback);
+    return {
+      returnValue: interpreter.run(variables, callback),
+      variables: interpreter.variables
+    };
   }
 
 };
+
+Lala.ParseError = ParseError;
+Lala.InterpretError = InterpretError;
 
 export default Lala;

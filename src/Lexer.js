@@ -36,14 +36,6 @@ class Lexer {
     return result;
   };
 
-  classify(type, value) {
-    var result = {
-      type: type,
-      value: value
-    };
-    return result;
-  };
-
   getToken() {
     if (!this.end()) {
       var c = this.next();
@@ -51,11 +43,14 @@ class Lexer {
       for (var i = 0; i < types.length; i++) {
         var type = types[i];
         if (this.lexicon[type].startTest.test(c)) {
+          var start = this.pos;
           var value = this.scan(this.lexicon[type].test);
           if (this.lexicon[type].values && this.lexicon[type].values.indexOf(value) === -1) {
             throw new Error(value + ' token matches ' + type + ' regex, but not one of ' + this.lexicon[type].values.join(','));
           }
           return {
+            start: start,
+            end: this.pos,
             type: type,
             value: value
           }

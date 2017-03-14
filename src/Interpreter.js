@@ -1,3 +1,6 @@
+import Parser from './Parser.js';
+import InterpretError from './InterpretError.js';
+
 class Interpreter {
 
   constructor(parser) {
@@ -23,7 +26,11 @@ class Interpreter {
   };
 
   visitVariable(node) {
-    return this.variables[node.value];
+    if (typeof this.variables[node.value] !== 'undefined') {
+      return this.variables[node.value];
+    } else {
+      throw new InterpretError('Unknown identifier: ' + node.value, node);
+    }
   };
 
   visitMathExpression(node) {
@@ -39,14 +46,15 @@ class Interpreter {
     if (node.operator === '-') {
       return this.visit(node.left) - this.visit(node.right);
     }
+    throw new InterpretError('Uknown operator: ' + node.operator, node);
   };
 
   visitAssignmentExpression(node) {
     var value = this.visit(node.right);
     if (isNaN(value)) {
-      this.variables[node.left.value] = value;
+      return this.variables[node.left.value] = value;
     } else {
-      this.variables[node.left.value] = parseFloat(value);
+      return this.variables[node.left.value] = parseFloat(value);
     }
   };
 
@@ -69,6 +77,7 @@ class Interpreter {
     if (node.operator === '>') {
       return this.visit(node.left) > this.visit(node.right);
     }
+    throw new InterpretError('Uknown operator: ' + node.operator, node);
   }
 
   visitLogicalExpression(node) {
@@ -78,6 +87,7 @@ class Interpreter {
     if (node.operator === '&&') {
       return this.visit(node.left) && this.visit(node.right);
     }
+    throw new InterpretError('Uknown operator: ' + node.operator, node);
   };
 
   visitIfStatement(node) {
@@ -109,9 +119,11 @@ class Interpreter {
     this.callback = callback;
 
     var nodes = this.parser.parse();
+    var result;
     nodes.forEach(function(node) {
-      this.visit(node);
+      result = this.visit(node);
     }.bind(this));
+    return result;
 
   };
 

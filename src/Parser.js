@@ -1,3 +1,5 @@
+import ParseError from './ParseError.js';
+
 class Parser {
 
   constructor(grammar, lexer) {
@@ -15,12 +17,15 @@ class Parser {
     return JSON.parse(JSON.stringify(this.token));
   };
 
-  eat(type) {
-    if (this.token.type == type) {
+  eat(type, value) {
+    if (this.token.type == type && ((typeof value !== 'undefined') ? (this.token.value == value) : true)) {
       this.token = this.lexer.nextToken();
     } else {
-      console.trace(type, this.token);
-      throw new Error('expected ' + type + ', got ' + this.token.type);
+      if (typeof value !== 'undefined') {
+        throw new ParseError('Expected ' + type + ': "' + value + '"', this.cloneCurrentToken(), {type: type, value: value});
+      } else {
+        throw new ParseError('Expected ' + type, this.cloneCurrentToken(), {type: type});
+      }
     }
   };
 
@@ -30,35 +35,43 @@ class Parser {
       this.eat(token.type);
       return {
         type: 'NumericConstant',
-        value: token.value
+        value: token.value,
+        start: token.start,
+        end: token.end
       };
     } else if (token.type == 'identifier') {
       this.eat(token.type);
       return {
         type: 'Variable',
-        value: token.value
+        value: token.value,
+        start: token.start,
+        end: token.end
       }
     } else if (token.type == 'parenthesis') {
-      this.eat(token.type);
+      this.eat(token.type, '(');
       var result = this.expression();
-      this.eat('parenthesis');
+      this.eat('parenthesis', ')');
       return result;
-    } else if (token.type == 'braces' && token.value == '{') {
-      this.eat(token.type);
+    } else if (token.type == 'braces') {
+      this.eat(token.type, '{');
       var result = this.block();
-      this.eat('braces');
+      this.eat('braces', '}');
       return result;
+    } else {
+      throw new ParseError('Expected an expression', token);
     }
   };
 
   makeTermNode(type, node) {
-    var operator = this.token.value;
+    var token = this.cloneCurrentToken();
     this.eat(this.token.type);
     return {
       type: type,
       left: node,
-      operator: operator,
-      right: this.factor()
+      operator: token.value,
+      right: this.factor(),
+      start: token.start,
+      end: token.end
     };
   };
 
@@ -96,7 +109,9 @@ class Parser {
         if (rules[0].type === this.token.type && valueMatch) {
           var node = {
             type: this.grammar.expressions[i].result,
-            value: this.token.value
+            value: this.token.value,
+            start: this.token.start,
+            end: this.token.end
           };
           for (var j = 0; j < rules.length; j++) {
             var rule = rules[j];
@@ -106,7 +121,7 @@ class Parser {
             if (rule.parse) {
               node[rule.result] = this[rule.parse]();
             } else {
-              this.eat(rule.type);
+              this.eat(rule.type, rule.value);
             }
           }
           return node;
@@ -134,9 +149,9 @@ class Parser {
 
   program() {
     var nodes = [];
-    do {
+    while (this.token) {
       nodes.push(this.expression());
-    } while (this.token);
+    };
     return nodes;
   };
 
