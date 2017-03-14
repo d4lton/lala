@@ -25,6 +25,10 @@ class Interpreter {
     return parseFloat(node.value);
   };
 
+  visitStringConstant(node) {
+    return node.value;
+  };
+
   visitVariable(node) {
     if (typeof this.variables[node.value] !== 'undefined') {
       return this.variables[node.value];

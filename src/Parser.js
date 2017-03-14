@@ -39,6 +39,14 @@ class Parser {
         start: token.start,
         end: token.end
       };
+    } else if (token.type == "string") {
+      this.eat(token.type);
+      return {
+        type: 'StringConstant',
+        value: token.value,
+        start: token.start,
+        end: token.end
+      };
     } else if (token.type == 'identifier') {
       this.eat(token.type);
       return {

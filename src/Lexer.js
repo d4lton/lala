@@ -26,12 +26,28 @@ class Lexer {
     return (this.pos >= (this.text.length - 1));
   };
 
-  scan(regex) {
+  scanstring(lex) {
+    var result = ''; // ignore the initial quotation mark
+    // TODO: should check for escaped quotation marks
+    while ((typeof this.peek() !== 'undefined') && this.peek() !== '"') {
+      result += this.next();
+    }
+    this.next(); // eat the final quotation mark
+    return result;
+  };
+
+  scan(lex) {
     var result = this.current;
-    if (regex) {
-      while ((typeof this.peek() !== 'undefined') && regex.test(this.peek())) {
+    if (lex.scanner) {
+      return this['scan' + lex.scanner](lex);
+    }
+    if (lex.test) {
+      while ((typeof this.peek() !== 'undefined') && lex.test.test(this.peek())) {
         result += this.next();
       };
+      if (lex.keepLast === true) {
+        result += this.next();
+      }
     }
     return result;
   };
@@ -44,7 +60,7 @@ class Lexer {
         var type = types[i];
         if (this.lexicon[type].startTest.test(c)) {
           var start = this.pos;
-          var value = this.scan(this.lexicon[type].test);
+          var value = this.scan(this.lexicon[type]);
           if (this.lexicon[type].values && this.lexicon[type].values.indexOf(value) === -1) {
             throw new Error(value + ' token matches ' + type + ' regex, but not one of ' + this.lexicon[type].values.join(','));
           }

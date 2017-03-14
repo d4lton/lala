@@ -21,6 +21,10 @@ class Lala {
         startTest: /[0-9\-]/,
         test: /[0-9\.]/
       },
+      string : {
+        startTest: /["]/,
+        scanner: 'string'
+      },
       operator: {
         startTest: /[\+\-\*\/><=|&!]/,
         test: /[\+\-\*\/><=|&!]/,
@@ -94,6 +98,8 @@ class Lala {
 
 };
 
+Lala.Parser = Parser;
+Lala.Lexer = Lexer;
 Lala.ParseError = ParseError;
 Lala.InterpretError = InterpretError;
 
