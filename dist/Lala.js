@@ -1,5 +1,11 @@
 'use strict';
 
+/**
+ * Hemp
+ *
+ * Copyright ©2017 Dana Basken <dbasken@gmail.com>
+ *
+ */
 function ParseError(message, token, expected) {
   this.message = message;
   this.token = token;
@@ -7,6 +13,12 @@ function ParseError(message, token, expected) {
 }
 ParseError.prototype = new Error;
 
+/**
+ * Hemp
+ *
+ * Copyright ©2017 Dana Basken <dbasken@gmail.com>
+ *
+ */
 class Parser {
 
   constructor(grammar, lexer) {
@@ -177,6 +189,12 @@ class Parser {
 
 }
 
+/**
+ * Hemp
+ *
+ * Copyright ©2017 Dana Basken <dbasken@gmail.com>
+ *
+ */
 class Lexer {
 
   constructor(lexicon, text) {
@@ -275,12 +293,24 @@ class Lexer {
 
 }
 
+/**
+ * Hemp
+ *
+ * Copyright ©2017 Dana Basken <dbasken@gmail.com>
+ *
+ */
 function InterpretError(message, node) {
   this.message = message;
   this.node = node;
 }
 InterpretError.prototype = new Error;
 
+/**
+ * Hemp
+ *
+ * Copyright ©2017 Dana Basken <dbasken@gmail.com>
+ *
+ */
 class Interpreter {
 
   constructor(parser) {
@@ -413,6 +443,12 @@ class Interpreter {
 
 }
 
+/**
+ * Hemp
+ *
+ * Copyright ©2017 Dana Basken <dbasken@gmail.com>
+ *
+ */
 class Lala {
 
   constructor() {
