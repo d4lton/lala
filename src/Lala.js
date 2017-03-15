@@ -1,3 +1,9 @@
+/**
+ * Hemp
+ *
+ * Copyright ©2017 Dana Basken <dbasken@gmail.com>
+ *
+ */
 import Parser from './Parser.js';
 import Lexer from './Lexer.js';
 import Interpreter from './Interpreter.js';

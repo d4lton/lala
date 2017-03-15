@@ -1,3 +1,9 @@
+/**
+ * Hemp
+ *
+ * Copyright ©2017 Dana Basken <dbasken@gmail.com>
+ *
+ */
 import ParseError from './ParseError.js';
 
 class Parser {
