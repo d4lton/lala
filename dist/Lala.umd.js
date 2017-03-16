@@ -543,16 +543,16 @@ var Interpreter = function () {
   }, {
     key: 'visitVariable',
     value: function visitVariable(node) {
-      if (typeof this.variables[node.value] !== 'undefined') {
-        var properties = node.value.split('.');
-        var object = this.variables;
-        properties.forEach(function (property) {
-          object = object[property];
-        });
-        return object;
-      } else {
-        throw new InterpretError('Unknown identifier: ' + node.value, node);
-      }
+
+      var properties = node.value.split('.');
+      var object = this.variables;
+      properties.forEach(function (property) {
+        if (typeof object[property] === 'undefined') {
+          throw new InterpretError('Unknown identifier: ' + node.value, node);
+        }
+        object = object[property];
+      });
+      return object;
     }
   }, {
     key: 'visitMathExpression',
