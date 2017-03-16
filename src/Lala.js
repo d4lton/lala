@@ -64,12 +64,12 @@ class Lala {
         {
           result: 'IfStatement',
           rules: [
-            {type: 'identifier', value: 'if'},
+            {type: 'identifier', values: ['if']},
             {type: 'parenthesis', value: '('},
             {parse: 'term', result: 'test'},
             {type: 'parenthesis', value: ')'},
             {parse: 'expression', result: 'consequence'},
-            {type: 'identifier', value: 'else', optional: true},
+            {type: 'identifier', values: ['else'], optional: true},
             {parse: 'expression', result: 'alternate'}
           ]
         },
@@ -82,9 +82,11 @@ class Lala {
           ]
         },
         {
-          result: 'BooleanConstant',
+          result: 'NativeFunction',
           rules: [
-            {type: 'identifier', values: ['true', 'false']}
+            {type: 'identifier', values: ['now', 'day', 'month', 'year']},
+            {type: 'parenthesis', value: '('},
+            {type: 'parenthesis', value: ')'}
           ]
         }
       ]

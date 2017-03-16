@@ -55,8 +55,13 @@ class Parser {
       };
     } else if (token.type == 'identifier') {
       this.eat(token.type);
+      var type = 'Variable';
+      if (token.value == 'true' || token.value == 'false') {
+        type = 'BooleanConstant';
+        token.value = (token.value == 'true') ? true : false;
+      }
       return {
-        type: 'Variable',
+        type: type,
         value: token.value,
         start: token.start,
         end: token.end
@@ -110,17 +115,44 @@ class Parser {
 
   expression() {
 
+/*
+    var node = this.term();
+
+    if (this.token) {
     for (var i = 0; i < this.grammar.expressions.length; i++) {
       var rules = this.grammar.expressions[i].rules;
       if (rules && rules.length > 0) {
-        var valueMatch = false;
-        if (rules[0].value) {
-          valueMatch = (rules[0].value === this.token.value);
+        if (rules[0].type === this.token.type && rules[0].values.indexOf(this.token.value) !== -1) {
+          var node = {
+            type: this.grammar.expressions[i].result,
+            value: this.token.value,
+            start: this.token.start,
+            end: this.token.end
+          };
+          for (var j = 0; j < rules.length; j++) {
+            var rule = rules[j];
+            if (rule.optional === true && (!this.token || this.token.type != rule.type)) {
+              break;
+            }
+            if (rule.parse) {
+              node[rule.result] = this[rule.parse]();
+            } else {
+              this.eat(rule.type, rule.value);
+            }
+          }
+          return node;
         }
-        if (rules[0].values) {
-          valueMatch = (rules[0].values.indexOf(this.token.value) !== -1);
-        }
-        if (rules[0].type === this.token.type && valueMatch) {
+      }
+    }
+    }
+    return node;
+    */
+
+
+    for (var i = 0; i < this.grammar.expressions.length; i++) {
+      var rules = this.grammar.expressions[i].rules;
+      if (rules && rules.length > 0) {
+        if (rules[0].type === this.token.type && rules[0].values.indexOf(this.token.value) !== -1) {
           var node = {
             type: this.grammar.expressions[i].result,
             value: this.token.value,

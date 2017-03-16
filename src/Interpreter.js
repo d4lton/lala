@@ -12,6 +12,33 @@ class Interpreter {
   constructor(parser) {
     this.parser = parser;
   };
+  
+  visitBooleanConstant(node) {
+    return node.value;
+  };
+
+  visitNativeFunction(node) {
+    switch (node.value) {
+      case 'now':
+        return Date.now();
+        break;
+      case 'day':
+        var date = new Date();
+        return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()];
+        break;
+      case 'month':
+        var date = new Date();
+        return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'Auguest', 'September', 'October', 'November', 'December'][date.getMonth()];
+        break;
+      case 'year':
+        var date = new Date();
+        return date.getFullYear()
+        break;
+      default:
+         throw new InterpretError('Unknown native function: ' + node.value, node);
+        break;
+    };
+  };
 
   visitCallStatement(node) {
     if (typeof this.callback === 'function') {
@@ -37,7 +64,12 @@ class Interpreter {
 
   visitVariable(node) {
     if (typeof this.variables[node.value] !== 'undefined') {
-      return this.variables[node.value];
+      var properties = node.value.split('.');
+      var object = this.variables;
+      properties.forEach(function(property) {
+        object = object[property];
+      });
+      return object;
     } else {
       throw new InterpretError('Unknown identifier: ' + node.value, node);
     }
@@ -61,11 +93,22 @@ class Interpreter {
 
   visitAssignmentExpression(node) {
     var value = this.visit(node.right);
-    if (isNaN(value)) {
-      return this.variables[node.left.value] = value;
-    } else {
-      return this.variables[node.left.value] = parseFloat(value);
+    if (!isNaN(value) && (typeof value !== 'boolean')) {
+      value = parseFloat(value);
     }
+    var properties = node.left.value.split('.');
+    var object = this.variables;
+    properties.forEach(function(property, index) {
+      if (index == properties.length - 1) {
+        object[property] = value;
+      } else {
+        if (typeof object[property] === 'undefined') {
+          object[property] = {};
+        }
+        object = object[property];
+      }
+    });
+    return value;
   };
 
   visitComparisonExpression(node) {

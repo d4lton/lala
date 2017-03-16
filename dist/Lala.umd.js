@@ -187,8 +187,13 @@ var Parser = function () {
         };
       } else if (token.type == 'identifier') {
         this.eat(token.type);
+        var type = 'Variable';
+        if (token.value == 'true' || token.value == 'false') {
+          type = 'BooleanConstant';
+          token.value = token.value == 'true' ? true : false;
+        }
         return {
-          type: 'Variable',
+          type: type,
           value: token.value,
           start: token.start,
           end: token.end
@@ -244,17 +249,43 @@ var Parser = function () {
     key: 'expression',
     value: function expression() {
 
+      /*
+          var node = this.term();
+      
+          if (this.token) {
+          for (var i = 0; i < this.grammar.expressions.length; i++) {
+            var rules = this.grammar.expressions[i].rules;
+            if (rules && rules.length > 0) {
+              if (rules[0].type === this.token.type && rules[0].values.indexOf(this.token.value) !== -1) {
+                var node = {
+                  type: this.grammar.expressions[i].result,
+                  value: this.token.value,
+                  start: this.token.start,
+                  end: this.token.end
+                };
+                for (var j = 0; j < rules.length; j++) {
+                  var rule = rules[j];
+                  if (rule.optional === true && (!this.token || this.token.type != rule.type)) {
+                    break;
+                  }
+                  if (rule.parse) {
+                    node[rule.result] = this[rule.parse]();
+                  } else {
+                    this.eat(rule.type, rule.value);
+                  }
+                }
+                return node;
+              }
+            }
+          }
+          }
+          return node;
+          */
+
       for (var i = 0; i < this.grammar.expressions.length; i++) {
         var rules = this.grammar.expressions[i].rules;
         if (rules && rules.length > 0) {
-          var valueMatch = false;
-          if (rules[0].value) {
-            valueMatch = rules[0].value === this.token.value;
-          }
-          if (rules[0].values) {
-            valueMatch = rules[0].values.indexOf(this.token.value) !== -1;
-          }
-          if (rules[0].type === this.token.type && valueMatch) {
+          if (rules[0].type === this.token.type && rules[0].values.indexOf(this.token.value) !== -1) {
             var node = {
               type: this.grammar.expressions[i].result,
               value: this.token.value,
@@ -455,6 +486,35 @@ var Interpreter = function () {
   }
 
   createClass(Interpreter, [{
+    key: 'visitBooleanConstant',
+    value: function visitBooleanConstant(node) {
+      return node.value;
+    }
+  }, {
+    key: 'visitNativeFunction',
+    value: function visitNativeFunction(node) {
+      switch (node.value) {
+        case 'now':
+          return Date.now();
+          break;
+        case 'day':
+          var date = new Date();
+          return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()];
+          break;
+        case 'month':
+          var date = new Date();
+          return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'Auguest', 'September', 'October', 'November', 'December'][date.getMonth()];
+          break;
+        case 'year':
+          var date = new Date();
+          return date.getFullYear();
+          break;
+        default:
+          throw new InterpretError('Unknown native function: ' + node.value, node);
+          break;
+      }
+    }
+  }, {
     key: 'visitCallStatement',
     value: function visitCallStatement(node) {
       if (typeof this.callback === 'function') {
@@ -484,7 +544,12 @@ var Interpreter = function () {
     key: 'visitVariable',
     value: function visitVariable(node) {
       if (typeof this.variables[node.value] !== 'undefined') {
-        return this.variables[node.value];
+        var properties = node.value.split('.');
+        var object = this.variables;
+        properties.forEach(function (property) {
+          object = object[property];
+        });
+        return object;
       } else {
         throw new InterpretError('Unknown identifier: ' + node.value, node);
       }
@@ -510,11 +575,22 @@ var Interpreter = function () {
     key: 'visitAssignmentExpression',
     value: function visitAssignmentExpression(node) {
       var value = this.visit(node.right);
-      if (isNaN(value)) {
-        return this.variables[node.left.value] = value;
-      } else {
-        return this.variables[node.left.value] = parseFloat(value);
+      if (!isNaN(value) && typeof value !== 'boolean') {
+        value = parseFloat(value);
       }
+      var properties = node.left.value.split('.');
+      var object = this.variables;
+      properties.forEach(function (property, index) {
+        if (index == properties.length - 1) {
+          object[property] = value;
+        } else {
+          if (typeof object[property] === 'undefined') {
+            object[property] = {};
+          }
+          object = object[property];
+        }
+      });
+      return value;
     }
   }, {
     key: 'visitComparisonExpression',
@@ -638,13 +714,13 @@ var Lala = function () {
       operators: [{ value: '+', result: 'MathExpression' }, { value: '-', result: 'MathExpression' }, { value: '*', result: 'MathExpression' }, { value: '/', result: 'MathExpression' }, { value: '==', result: 'ComparisonExpression' }, { value: '!=', result: 'ComparisonExpression' }, { value: '<=', result: 'ComparisonExpression' }, { value: '>=', result: 'ComparisonExpression' }, { value: '>', result: 'ComparisonExpression' }, { value: '<', result: 'ComparisonExpression' }, { value: '||', result: 'LogicalExpression' }, { value: '&&', result: 'LogicalExpression' }, { value: '=', result: 'AssignmentExpression' }],
       expressions: [{
         result: 'IfStatement',
-        rules: [{ type: 'identifier', value: 'if' }, { type: 'parenthesis', value: '(' }, { parse: 'term', result: 'test' }, { type: 'parenthesis', value: ')' }, { parse: 'expression', result: 'consequence' }, { type: 'identifier', value: 'else', optional: true }, { parse: 'expression', result: 'alternate' }]
+        rules: [{ type: 'identifier', values: ['if'] }, { type: 'parenthesis', value: '(' }, { parse: 'term', result: 'test' }, { type: 'parenthesis', value: ')' }, { parse: 'expression', result: 'consequence' }, { type: 'identifier', values: ['else'], optional: true }, { parse: 'expression', result: 'alternate' }]
       }, {
         result: 'CallStatement',
         rules: [{ type: 'identifier', values: ['hide', 'show'] }, { type: 'parenthesis', value: '(' }, { type: 'parenthesis', value: ')' }]
       }, {
-        result: 'BooleanConstant',
-        rules: [{ type: 'identifier', values: ['true', 'false'] }]
+        result: 'NativeFunction',
+        rules: [{ type: 'identifier', values: ['now', 'day', 'month', 'year'] }, { type: 'parenthesis', value: '(' }, { type: 'parenthesis', value: ')' }]
       }]
     };
   }

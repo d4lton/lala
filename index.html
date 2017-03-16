@@ -9,7 +9,19 @@
         var text = document.getElementById('text');
         var lala = new Lala();
         try {
-          var result = lala.run(text.value, {}, function(name) {
+          var object = {
+            type: 'text',
+            text: '{{description}}',
+            font: 'Helvetica 20pt',
+            color: '#FFFFFF',
+            x: 200,
+            y: 200,
+            height: 50,
+            width: 300,
+            locked: true,
+            visible: true
+          }
+          var result = lala.run(text.value, {object: object}, function(name) {
             output.value += "internal function '" + name + "' called\n";
           });
           output.value += JSON.stringify(result, null, 2);
@@ -18,13 +30,13 @@
             console.log(e);
             text.setSelectionRange(e.token.start, e.token.end + 1);
             text.focus();
-          }
-          if (e instanceof Lala.InterpretError) {
+          } else if (e instanceof Lala.InterpretError) {
             console.log(e);
             text.setSelectionRange(e.node.start, e.node.end + 1);
             text.focus();
+          } else {
+            throw e;
           }
-          output.value = 'ERROR: ' + e.message;
         }
       }
 
