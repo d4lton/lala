@@ -72,40 +72,36 @@ class Lala {
             {type: 'identifier', values: ['else'], optional: true},
             {parse: 'expression', result: 'alternate'}
           ]
-        },
-        {
-          result: 'CallStatement',
-          rules: [
-            {type: 'identifier', values: ['hide', 'show']},
-            {type: 'parenthesis', value: '('},
-            {type: 'parenthesis', value: ')'}
-          ]
-        },
-        {
-          result: 'NativeFunction',
-          rules: [
-            {type: 'identifier', values: ['now', 'day', 'month', 'year']},
-            {type: 'parenthesis', value: '('},
-            {type: 'parenthesis', value: ')'}
-          ]
         }
       ]
     };
 
   };
+  
+  setupBuiltinVariables(variables) {
+    var date = new Date();
+    variables.date = {
+      now: Date.now(),
+      day: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()],
+      month: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'Auguest', 'September', 'October', 'November', 'December'][date.getMonth()],
+      year: date.getFullYear()
+    }
+  }
 
   check(text, variables) {
+    this.setupBuiltinVariables(variables);
     var lexer = new Lexer(this.lexicon, text);
     var parser = new Parser(this.grammar, lexer);
     return parser.parse();
   };
   
-  run(text, variables, callback) {
+  run(text, variables) {
+    this.setupBuiltinVariables(variables);
     var lexer = new Lexer(this.lexicon, text);
     var parser = new Parser(this.grammar, lexer);
     var interpreter = new Interpreter(parser);
     return {
-      returnValue: interpreter.run(variables, callback),
+      returnValue: interpreter.run(variables),
       variables: interpreter.variables
     };
   }

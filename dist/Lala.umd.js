@@ -491,37 +491,6 @@ var Interpreter = function () {
       return node.value;
     }
   }, {
-    key: 'visitNativeFunction',
-    value: function visitNativeFunction(node) {
-      switch (node.value) {
-        case 'now':
-          return Date.now();
-          break;
-        case 'day':
-          var date = new Date();
-          return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()];
-          break;
-        case 'month':
-          var date = new Date();
-          return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'Auguest', 'September', 'October', 'November', 'December'][date.getMonth()];
-          break;
-        case 'year':
-          var date = new Date();
-          return date.getFullYear();
-          break;
-        default:
-          throw new InterpretError('Unknown native function: ' + node.value, node);
-          break;
-      }
-    }
-  }, {
-    key: 'visitCallStatement',
-    value: function visitCallStatement(node) {
-      if (typeof this.callback === 'function') {
-        this.callback(node.value);
-      }
-    }
-  }, {
     key: 'visitBlock',
     value: function visitBlock(node) {
       var result;
@@ -543,7 +512,6 @@ var Interpreter = function () {
   }, {
     key: 'visitVariable',
     value: function visitVariable(node) {
-
       var properties = node.value.split('.');
       var object = this.variables;
       properties.forEach(function (property) {
@@ -649,14 +617,12 @@ var Interpreter = function () {
     }
   }, {
     key: 'run',
-    value: function run(variables, callback) {
+    value: function run(variables) {
 
       this.variables = {};
       if ((typeof variables === 'undefined' ? 'undefined' : _typeof(variables)) == 'object') {
         this.variables = variables;
       }
-
-      this.callback = callback;
 
       var nodes = this.parser.parse();
       var result;
@@ -715,31 +681,38 @@ var Lala = function () {
       expressions: [{
         result: 'IfStatement',
         rules: [{ type: 'identifier', values: ['if'] }, { type: 'parenthesis', value: '(' }, { parse: 'term', result: 'test' }, { type: 'parenthesis', value: ')' }, { parse: 'expression', result: 'consequence' }, { type: 'identifier', values: ['else'], optional: true }, { parse: 'expression', result: 'alternate' }]
-      }, {
-        result: 'CallStatement',
-        rules: [{ type: 'identifier', values: ['hide', 'show'] }, { type: 'parenthesis', value: '(' }, { type: 'parenthesis', value: ')' }]
-      }, {
-        result: 'NativeFunction',
-        rules: [{ type: 'identifier', values: ['now', 'day', 'month', 'year'] }, { type: 'parenthesis', value: '(' }, { type: 'parenthesis', value: ')' }]
       }]
     };
   }
 
   createClass(Lala, [{
+    key: 'setupBuiltinVariables',
+    value: function setupBuiltinVariables(variables) {
+      var date = new Date();
+      variables.date = {
+        now: Date.now(),
+        day: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()],
+        month: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'Auguest', 'September', 'October', 'November', 'December'][date.getMonth()],
+        year: date.getFullYear()
+      };
+    }
+  }, {
     key: 'check',
     value: function check(text, variables) {
+      this.setupBuiltinVariables(variables);
       var lexer = new Lexer(this.lexicon, text);
       var parser = new Parser(this.grammar, lexer);
       return parser.parse();
     }
   }, {
     key: 'run',
-    value: function run(text, variables, callback) {
+    value: function run(text, variables) {
+      this.setupBuiltinVariables(variables);
       var lexer = new Lexer(this.lexicon, text);
       var parser = new Parser(this.grammar, lexer);
       var interpreter = new Interpreter(parser);
       return {
-        returnValue: interpreter.run(variables, callback),
+        returnValue: interpreter.run(variables),
         variables: interpreter.variables
       };
     }

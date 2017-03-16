@@ -17,35 +17,6 @@ class Interpreter {
     return node.value;
   };
 
-  visitNativeFunction(node) {
-    switch (node.value) {
-      case 'now':
-        return Date.now();
-        break;
-      case 'day':
-        var date = new Date();
-        return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()];
-        break;
-      case 'month':
-        var date = new Date();
-        return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'Auguest', 'September', 'October', 'November', 'December'][date.getMonth()];
-        break;
-      case 'year':
-        var date = new Date();
-        return date.getFullYear()
-        break;
-      default:
-         throw new InterpretError('Unknown native function: ' + node.value, node);
-        break;
-    };
-  };
-
-  visitCallStatement(node) {
-    if (typeof this.callback === 'function') {
-      this.callback(node.value);
-    }
-  };
-
   visitBlock(node) {
     var result;
     node.nodes.forEach(function(root) {
@@ -161,14 +132,12 @@ class Interpreter {
     }
   };
 
-  run(variables, callback) {
+  run(variables) {
 
     this.variables = {};
     if (typeof variables == 'object') {
       this.variables = variables;
     }
-
-    this.callback = callback;
 
     var nodes = this.parser.parse();
     var result;
