@@ -21,7 +21,7 @@ class Lala {
       },
       identifier: {
         startTest: /[a-zA-Z]/,
-        test: /[a-zA-Z_]/
+        test: /[a-zA-Z_\.]/
       },
       number: {
         startTest: /[0-9\-]/,
@@ -79,6 +79,12 @@ class Lala {
             {type: 'identifier', values: ['hide', 'show']},
             {type: 'parenthesis', value: '('},
             {type: 'parenthesis', value: ')'}
+          ]
+        },
+        {
+          result: 'BooleanConstant',
+          rules: [
+            {type: 'identifier', values: ['true', 'false']}
           ]
         }
       ]

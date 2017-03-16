@@ -21,17 +21,25 @@ let promise = Promise.resolve();
 promise = promise.then(() => del(['dist/*']));
 
 // Compile source code into a distributable format with Babel
-['es', 'cjs', 'umd'].forEach((format) => {
+for (const format of ['umd']) {
   promise = promise.then(() => rollup.rollup({
     entry: 'src/Lala.js',
-    external: Object.keys(pkg.dependencies)
+    external: Object.keys(pkg.dependencies),
+    plugins: [babel(Object.assign(pkg.babel, {
+      babelrc: true,
+      exclude: [
+        'node_modules/**'
+      ],
+      runtimeHelpers: true,
+      presets: pkg.babel.presets.map(x => (x === 'latest' ? ['latest', { es2015: { modules: false } }] : x)),
+    }))],
   }).then(bundle => bundle.write({
     dest: `dist/${format === 'cjs' ? 'Lala' : `Lala.${format}`}.js`,
     format,
-    sourceMap: false,
+    sourceMap: true,
     moduleName: format === 'umd' ? pkg.name : undefined,
   })));
-});
+}
 
 // Copy package.json and LICENSE.txt
 promise = promise.then(() => {

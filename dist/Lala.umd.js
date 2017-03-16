@@ -15,7 +15,116 @@ function ParseError(message, token, expected) {
   this.token = token;
   this.expected = expected;
 }
-ParseError.prototype = new Error;
+ParseError.prototype = new Error();
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+  return typeof obj;
+} : function (obj) {
+  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+};
+
+
+
+
+
+
+
+
+
+
+
+var classCallCheck = function (instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+};
+
+var createClass = function () {
+  function defineProperties(target, props) {
+    for (var i = 0; i < props.length; i++) {
+      var descriptor = props[i];
+      descriptor.enumerable = descriptor.enumerable || false;
+      descriptor.configurable = true;
+      if ("value" in descriptor) descriptor.writable = true;
+      Object.defineProperty(target, descriptor.key, descriptor);
+    }
+  }
+
+  return function (Constructor, protoProps, staticProps) {
+    if (protoProps) defineProperties(Constructor.prototype, protoProps);
+    if (staticProps) defineProperties(Constructor, staticProps);
+    return Constructor;
+  };
+}();
+
+
+
+
+
+
+
+var get = function get(object, property, receiver) {
+  if (object === null) object = Function.prototype;
+  var desc = Object.getOwnPropertyDescriptor(object, property);
+
+  if (desc === undefined) {
+    var parent = Object.getPrototypeOf(object);
+
+    if (parent === null) {
+      return undefined;
+    } else {
+      return get(parent, property, receiver);
+    }
+  } else if ("value" in desc) {
+    return desc.value;
+  } else {
+    var getter = desc.get;
+
+    if (getter === undefined) {
+      return undefined;
+    }
+
+    return getter.call(receiver);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var set = function set(object, property, value, receiver) {
+  var desc = Object.getOwnPropertyDescriptor(object, property);
+
+  if (desc === undefined) {
+    var parent = Object.getPrototypeOf(object);
+
+    if (parent !== null) {
+      set(parent, property, value, receiver);
+    }
+  } else if ("value" in desc && desc.writable) {
+    desc.value = value;
+  } else {
+    var setter = desc.set;
+
+    if (setter !== undefined) {
+      setter.call(receiver, value);
+    }
+  }
+
+  return value;
+};
 
 /**
  * Hemp
@@ -23,175 +132,186 @@ ParseError.prototype = new Error;
  * Copyright ©2017 Dana Basken <dbasken@gmail.com>
  *
  */
-class Parser {
+var Parser = function () {
+  function Parser(grammar, lexer) {
+    classCallCheck(this, Parser);
 
-  constructor(grammar, lexer) {
     this.grammar = grammar;
     this.lexer = lexer;
     this.token = this.lexer.nextToken();
-  };
+  }
 
-  reset() {
-    this.lexer.reset();
-    this.token = this.lexer.nextToken();
-  };
-
-  cloneCurrentToken() {
-    return JSON.parse(JSON.stringify(this.token));
-  };
-
-  eat(type, value) {
-    if (this.token.type == type && ((typeof value !== 'undefined') ? (this.token.value == value) : true)) {
+  createClass(Parser, [{
+    key: 'reset',
+    value: function reset() {
+      this.lexer.reset();
       this.token = this.lexer.nextToken();
-    } else {
-      if (typeof value !== 'undefined') {
-        throw new ParseError('Expected ' + type + ': "' + value + '"', this.cloneCurrentToken(), {type: type, value: value});
+    }
+  }, {
+    key: 'cloneCurrentToken',
+    value: function cloneCurrentToken() {
+      return JSON.parse(JSON.stringify(this.token));
+    }
+  }, {
+    key: 'eat',
+    value: function eat(type, value) {
+      if (this.token.type == type && (typeof value !== 'undefined' ? this.token.value == value : true)) {
+        this.token = this.lexer.nextToken();
       } else {
-        throw new ParseError('Expected ' + type, this.cloneCurrentToken(), {type: type});
+        if (typeof value !== 'undefined') {
+          throw new ParseError('Expected ' + type + ': "' + value + '"', this.cloneCurrentToken(), { type: type, value: value });
+        } else {
+          throw new ParseError('Expected ' + type, this.cloneCurrentToken(), { type: type });
+        }
       }
     }
-  };
-
-  factor() {
-    var token = this.cloneCurrentToken();
-    if (token.type == 'number') {
-      this.eat(token.type);
+  }, {
+    key: 'factor',
+    value: function factor() {
+      var token = this.cloneCurrentToken();
+      if (token.type == 'number') {
+        this.eat(token.type);
+        return {
+          type: 'NumericConstant',
+          value: token.value,
+          start: token.start,
+          end: token.end
+        };
+      } else if (token.type == "string") {
+        this.eat(token.type);
+        return {
+          type: 'StringConstant',
+          value: token.value,
+          start: token.start,
+          end: token.end
+        };
+      } else if (token.type == 'identifier') {
+        this.eat(token.type);
+        return {
+          type: 'Variable',
+          value: token.value,
+          start: token.start,
+          end: token.end
+        };
+      } else if (token.type == 'parenthesis') {
+        this.eat(token.type, '(');
+        var result = this.expression();
+        this.eat('parenthesis', ')');
+        return result;
+      } else if (token.type == 'braces') {
+        this.eat(token.type, '{');
+        var result = this.block();
+        this.eat('braces', '}');
+        return result;
+      } else {
+        throw new ParseError('Expected an expression', token);
+      }
+    }
+  }, {
+    key: 'makeTermNode',
+    value: function makeTermNode(type, node) {
+      var token = this.cloneCurrentToken();
+      this.eat(this.token.type);
       return {
-        type: 'NumericConstant',
-        value: token.value,
+        type: type,
+        left: node,
+        operator: token.value,
+        right: this.factor(),
         start: token.start,
         end: token.end
       };
-    } else if (token.type == "string") {
-      this.eat(token.type);
-      return {
-        type: 'StringConstant',
-        value: token.value,
-        start: token.start,
-        end: token.end
-      };
-    } else if (token.type == 'identifier') {
-      this.eat(token.type);
-      return {
-        type: 'Variable',
-        value: token.value,
-        start: token.start,
-        end: token.end
-      }
-    } else if (token.type == 'parenthesis') {
-      this.eat(token.type, '(');
-      var result = this.expression();
-      this.eat('parenthesis', ')');
-      return result;
-    } else if (token.type == 'braces') {
-      this.eat(token.type, '{');
-      var result = this.block();
-      this.eat('braces', '}');
-      return result;
-    } else {
-      throw new ParseError('Expected an expression', token);
     }
-  };
+  }, {
+    key: 'term',
+    value: function term() {
 
-  makeTermNode(type, node) {
-    var token = this.cloneCurrentToken();
-    this.eat(this.token.type);
-    return {
-      type: type,
-      left: node,
-      operator: token.value,
-      right: this.factor(),
-      start: token.start,
-      end: token.end
-    };
-  };
+      var node = this.factor();
 
-  term() {
-
-    var node = this.factor();
-
-    var foundOperator = false;
-    do {
-      foundOperator = false;
-      for (var i = 0; i < this.grammar.operators.length; i++) {
-        while (this.token && this.token.type === 'operator' && this.token.value === this.grammar.operators[i].value) {
-          node = this.makeTermNode(this.grammar.operators[i].result, node);
-          foundOperator = true;
-        }
-      }
-    } while (foundOperator);
-
-    return node;
-
-  };
-
-  expression() {
-
-    for (var i = 0; i < this.grammar.expressions.length; i++) {
-      var rules = this.grammar.expressions[i].rules;
-      if (rules && rules.length > 0) {
-        var valueMatch = false;
-        if (rules[0].value) {
-          valueMatch = (rules[0].value === this.token.value);
-        }
-        if (rules[0].values) {
-          valueMatch = (rules[0].values.indexOf(this.token.value) !== -1);
-        }
-        if (rules[0].type === this.token.type && valueMatch) {
-          var node = {
-            type: this.grammar.expressions[i].result,
-            value: this.token.value,
-            start: this.token.start,
-            end: this.token.end
-          };
-          for (var j = 0; j < rules.length; j++) {
-            var rule = rules[j];
-            if (rule.optional === true && (!this.token || this.token.type != rule.type)) {
-              break;
-            }
-            if (rule.parse) {
-              node[rule.result] = this[rule.parse]();
-            } else {
-              this.eat(rule.type, rule.value);
-            }
+      var foundOperator = false;
+      do {
+        foundOperator = false;
+        for (var i = 0; i < this.grammar.operators.length; i++) {
+          while (this.token && this.token.type === 'operator' && this.token.value === this.grammar.operators[i].value) {
+            node = this.makeTermNode(this.grammar.operators[i].result, node);
+            foundOperator = true;
           }
-          return node;
+        }
+      } while (foundOperator);
+
+      return node;
+    }
+  }, {
+    key: 'expression',
+    value: function expression() {
+
+      for (var i = 0; i < this.grammar.expressions.length; i++) {
+        var rules = this.grammar.expressions[i].rules;
+        if (rules && rules.length > 0) {
+          var valueMatch = false;
+          if (rules[0].value) {
+            valueMatch = rules[0].value === this.token.value;
+          }
+          if (rules[0].values) {
+            valueMatch = rules[0].values.indexOf(this.token.value) !== -1;
+          }
+          if (rules[0].type === this.token.type && valueMatch) {
+            var node = {
+              type: this.grammar.expressions[i].result,
+              value: this.token.value,
+              start: this.token.start,
+              end: this.token.end
+            };
+            for (var j = 0; j < rules.length; j++) {
+              var rule = rules[j];
+              if (rule.optional === true && (!this.token || this.token.type != rule.type)) {
+                break;
+              }
+              if (rule.parse) {
+                node[rule.result] = this[rule.parse]();
+              } else {
+                this.eat(rule.type, rule.value);
+              }
+            }
+            return node;
+          }
         }
       }
+
+      return this.term();
     }
+  }, {
+    key: 'block',
+    value: function block() {
 
-    return this.term();
+      var node = {
+        type: 'Block',
+        nodes: []
+      };
 
-  };
+      while (this.token && this.token.type !== 'braces' && this.token.value !== '}') {
+        node.nodes.push(this.expression());
+      }
 
-  block() {
-
-    var node = {
-      type: 'Block',
-      nodes: []
-    };
-
-    while (this.token && this.token.type !== 'braces' && this.token.value !== '}') {
-      node.nodes.push(this.expression());
+      return node;
     }
-
-    return node;
-  };
-
-  program() {
-    var nodes = [];
-    while (this.token) {
-      nodes.push(this.expression());
+  }, {
+    key: 'program',
+    value: function program() {
+      var nodes = [];
+      while (this.token) {
+        nodes.push(this.expression());
+      }
+      return nodes;
     }
-    return nodes;
-  };
-
-  parse() {
-    this.reset();
-    return this.program();
-  };
-
-}
+  }, {
+    key: 'parse',
+    value: function parse() {
+      this.reset();
+      return this.program();
+    }
+  }]);
+  return Parser;
+}();
 
 /**
  * Hemp
@@ -199,103 +319,115 @@ class Parser {
  * Copyright ©2017 Dana Basken <dbasken@gmail.com>
  *
  */
-class Lexer {
+var Lexer = function () {
+  function Lexer(lexicon, text) {
+    classCallCheck(this, Lexer);
 
-  constructor(lexicon, text) {
     this.lexicon = lexicon;
     this.text = text;
     this.pos = -1;
   }
 
-  reset() {
-    this.pos = -1;
-  };
-
-  next() {
-    if (!this.end()) {
-      this.pos++;
-      this.current = this.text[this.pos];
-      return this.current;
+  createClass(Lexer, [{
+    key: 'reset',
+    value: function reset() {
+      this.pos = -1;
     }
-  };
-
-  peek() {
-    return this.text[this.pos + 1];
-  };
-
-  end() {
-    return (this.pos >= (this.text.length - 1));
-  };
-
-  scanstring(lex) {
-    var result = ''; // ignore the initial quotation mark
-    // TODO: should check for escaped quotation marks
-    while ((typeof this.peek() !== 'undefined') && this.peek() !== '"') {
-      result += this.next();
-    }
-    this.next(); // eat the final quotation mark
-    return result;
-  };
-
-  scan(lex) {
-    var result = this.current;
-    if (lex.scanner) {
-      return this['scan' + lex.scanner](lex);
-    }
-    if (lex.test) {
-      while ((typeof this.peek() !== 'undefined') && lex.test.test(this.peek())) {
-        result += this.next();
-      }
-      if (lex.keepLast === true) {
-        result += this.next();
+  }, {
+    key: 'next',
+    value: function next() {
+      if (!this.end()) {
+        this.pos++;
+        this.current = this.text[this.pos];
+        return this.current;
       }
     }
-    return result;
-  };
-
-  getToken() {
-    if (!this.end()) {
-      var c = this.next();
-      var types = Object.keys(this.lexicon);
-      for (var i = 0; i < types.length; i++) {
-        var type = types[i];
-        if (this.lexicon[type].startTest.test(c)) {
-          var start = this.pos;
-          var value = this.scan(this.lexicon[type]);
-          if (this.lexicon[type].values && this.lexicon[type].values.indexOf(value) === -1) {
-            throw new Error(value + ' token matches ' + type + ' regex, but not one of ' + this.lexicon[type].values.join(','));
-          }
-          return {
-            start: start,
-            end: this.pos,
-            type: type,
-            value: value
-          }
+  }, {
+    key: 'peek',
+    value: function peek() {
+      return this.text[this.pos + 1];
+    }
+  }, {
+    key: 'end',
+    value: function end() {
+      return this.pos >= this.text.length - 1;
+    }
+  }, {
+    key: 'scanstring',
+    value: function scanstring(lex) {
+      var result = ''; // ignore the initial quotation mark
+      // TODO: should check for escaped quotation marks
+      while (typeof this.peek() !== 'undefined' && this.peek() !== '"') {
+        result += this.next();
+      }
+      this.next(); // eat the final quotation mark
+      return result;
+    }
+  }, {
+    key: 'scan',
+    value: function scan(lex) {
+      var result = this.current;
+      if (lex.scanner) {
+        return this['scan' + lex.scanner](lex);
+      }
+      if (lex.test) {
+        while (typeof this.peek() !== 'undefined' && lex.test.test(this.peek())) {
+          result += this.next();
+        }
+        if (lex.keepLast === true) {
+          result += this.next();
         }
       }
-      throw new Error('could not match: ' + c);
+      return result;
     }
-  };
-
-  nextToken() {
-    var token = this.getToken();
-    while (token && token.type == 'ignore') {
-      token = this.getToken();
+  }, {
+    key: 'getToken',
+    value: function getToken() {
+      if (!this.end()) {
+        var c = this.next();
+        var types = Object.keys(this.lexicon);
+        for (var i = 0; i < types.length; i++) {
+          var type = types[i];
+          if (this.lexicon[type].startTest.test(c)) {
+            var start = this.pos;
+            var value = this.scan(this.lexicon[type]);
+            if (this.lexicon[type].values && this.lexicon[type].values.indexOf(value) === -1) {
+              throw new Error(value + ' token matches ' + type + ' regex, but not one of ' + this.lexicon[type].values.join(','));
+            }
+            return {
+              start: start,
+              end: this.pos,
+              type: type,
+              value: value
+            };
+          }
+        }
+        throw new Error('could not match: ' + c);
+      }
     }
-    return token;
-  };
-
-  allTokens() {
-    var results = [];
-    var token = this.nextToken();
-    while (token) {
-      results.push(token);
-      token = this.nextToken();
+  }, {
+    key: 'nextToken',
+    value: function nextToken() {
+      var token = this.getToken();
+      while (token && token.type == 'ignore') {
+        token = this.getToken();
+      }
+      return token;
     }
-    return results;
-  };
-
-}
+  }, {
+    key: 'allTokens',
+    value: function allTokens() {
+      var results = [];
+      var token = this.nextToken();
+      while (token) {
+        results.push(token);
+        token = this.nextToken();
+      }
+      return results;
+    }
+  }]);
+  return Lexer;
+}();
 
 /**
  * Hemp
@@ -307,7 +439,7 @@ function InterpretError(message, node) {
   this.message = message;
   this.node = node;
 }
-InterpretError.prototype = new Error;
+InterpretError.prototype = new Error();
 
 /**
  * Hemp
@@ -315,137 +447,151 @@ InterpretError.prototype = new Error;
  * Copyright ©2017 Dana Basken <dbasken@gmail.com>
  *
  */
-class Interpreter {
+var Interpreter = function () {
+  function Interpreter(parser) {
+    classCallCheck(this, Interpreter);
 
-  constructor(parser) {
     this.parser = parser;
-  };
-
-  visitCallStatement(node) {
-    if (typeof this.callback === 'function') {
-      this.callback(node.value);
-    }
-  };
-
-  visitBlock(node) {
-    var result;
-    node.nodes.forEach(function(root) {
-      result = this.visit(root);
-    }.bind(this));
-    return result;
-  };
-
-  visitNumericConstant(node) {
-    return parseFloat(node.value);
-  };
-
-  visitStringConstant(node) {
-    return node.value;
-  };
-
-  visitVariable(node) {
-    if (typeof this.variables[node.value] !== 'undefined') {
-      return this.variables[node.value];
-    } else {
-      throw new InterpretError('Unknown identifier: ' + node.value, node);
-    }
-  };
-
-  visitMathExpression(node) {
-    if (node.operator === '+') {
-      return this.visit(node.left) + this.visit(node.right);
-    }
-    if (node.operator === '-') {
-      return this.visit(node.left) - this.visit(node.right);
-    }
-    if (node.operator === '*') {
-      return this.visit(node.left) * this.visit(node.right);
-    }
-    if (node.operator === '-') {
-      return this.visit(node.left) - this.visit(node.right);
-    }
-    throw new InterpretError('Uknown operator: ' + node.operator, node);
-  };
-
-  visitAssignmentExpression(node) {
-    var value = this.visit(node.right);
-    if (isNaN(value)) {
-      return this.variables[node.left.value] = value;
-    } else {
-      return this.variables[node.left.value] = parseFloat(value);
-    }
-  };
-
-  visitComparisonExpression(node) {
-    if (node.operator === '==') {
-      return this.visit(node.left) == this.visit(node.right);
-    }
-    if (node.operator === '!=') {
-      return this.visit(node.left) != this.visit(node.right);
-    }
-    if (node.operator === '<=') {
-      return this.visit(node.left) <= this.visit(node.right);
-    }
-    if (node.operator === '>=') {
-      return this.visit(node.left) >= this.visit(node.right);
-    }
-    if (node.operator === '<') {
-      return this.visit(node.left) < this.visit(node.right);
-    }
-    if (node.operator === '>') {
-      return this.visit(node.left) > this.visit(node.right);
-    }
-    throw new InterpretError('Uknown operator: ' + node.operator, node);
   }
 
-  visitLogicalExpression(node) {
-    if (node.operator === '||') {
-      return this.visit(node.left) || this.visit(node.right);
-    }
-    if (node.operator === '&&') {
-      return this.visit(node.left) && this.visit(node.right);
-    }
-    throw new InterpretError('Uknown operator: ' + node.operator, node);
-  };
-
-  visitIfStatement(node) {
-    if (this.visit(node.test)) {
-      return this.visit(node.consequence);
-    } else {
-      if (node.alternate) {
-        return this.visit(node.alternate);
+  createClass(Interpreter, [{
+    key: 'visitCallStatement',
+    value: function visitCallStatement(node) {
+      if (typeof this.callback === 'function') {
+        this.callback(node.value);
       }
     }
-  };
-
-  visit(node) {
-    var method = 'visit' + node.type;
-    if (typeof this[method] === 'function') {
-      return this[method](node);
-    } else {
-      throw new Error('visit method "' + method + '" not found');
+  }, {
+    key: 'visitBlock',
+    value: function visitBlock(node) {
+      var result;
+      node.nodes.forEach(function (root) {
+        result = this.visit(root);
+      }.bind(this));
+      return result;
     }
-  };
-
-  run(variables, callback) {
-
-    this.variables = {};
-    if (typeof variables == 'object') {
-      this.variables = variables;
+  }, {
+    key: 'visitNumericConstant',
+    value: function visitNumericConstant(node) {
+      return parseFloat(node.value);
     }
+  }, {
+    key: 'visitStringConstant',
+    value: function visitStringConstant(node) {
+      return node.value;
+    }
+  }, {
+    key: 'visitVariable',
+    value: function visitVariable(node) {
+      if (typeof this.variables[node.value] !== 'undefined') {
+        return this.variables[node.value];
+      } else {
+        throw new InterpretError('Unknown identifier: ' + node.value, node);
+      }
+    }
+  }, {
+    key: 'visitMathExpression',
+    value: function visitMathExpression(node) {
+      if (node.operator === '+') {
+        return this.visit(node.left) + this.visit(node.right);
+      }
+      if (node.operator === '-') {
+        return this.visit(node.left) - this.visit(node.right);
+      }
+      if (node.operator === '*') {
+        return this.visit(node.left) * this.visit(node.right);
+      }
+      if (node.operator === '-') {
+        return this.visit(node.left) - this.visit(node.right);
+      }
+      throw new InterpretError('Uknown operator: ' + node.operator, node);
+    }
+  }, {
+    key: 'visitAssignmentExpression',
+    value: function visitAssignmentExpression(node) {
+      var value = this.visit(node.right);
+      if (isNaN(value)) {
+        return this.variables[node.left.value] = value;
+      } else {
+        return this.variables[node.left.value] = parseFloat(value);
+      }
+    }
+  }, {
+    key: 'visitComparisonExpression',
+    value: function visitComparisonExpression(node) {
+      if (node.operator === '==') {
+        return this.visit(node.left) == this.visit(node.right);
+      }
+      if (node.operator === '!=') {
+        return this.visit(node.left) != this.visit(node.right);
+      }
+      if (node.operator === '<=') {
+        return this.visit(node.left) <= this.visit(node.right);
+      }
+      if (node.operator === '>=') {
+        return this.visit(node.left) >= this.visit(node.right);
+      }
+      if (node.operator === '<') {
+        return this.visit(node.left) < this.visit(node.right);
+      }
+      if (node.operator === '>') {
+        return this.visit(node.left) > this.visit(node.right);
+      }
+      throw new InterpretError('Uknown operator: ' + node.operator, node);
+    }
+  }, {
+    key: 'visitLogicalExpression',
+    value: function visitLogicalExpression(node) {
+      if (node.operator === '||') {
+        return this.visit(node.left) || this.visit(node.right);
+      }
+      if (node.operator === '&&') {
+        return this.visit(node.left) && this.visit(node.right);
+      }
+      throw new InterpretError('Uknown operator: ' + node.operator, node);
+    }
+  }, {
+    key: 'visitIfStatement',
+    value: function visitIfStatement(node) {
+      if (this.visit(node.test)) {
+        return this.visit(node.consequence);
+      } else {
+        if (node.alternate) {
+          return this.visit(node.alternate);
+        }
+      }
+    }
+  }, {
+    key: 'visit',
+    value: function visit(node) {
+      var method = 'visit' + node.type;
+      if (typeof this[method] === 'function') {
+        return this[method](node);
+      } else {
+        throw new Error('visit method "' + method + '" not found');
+      }
+    }
+  }, {
+    key: 'run',
+    value: function run(variables, callback) {
 
-    this.callback = callback;
+      this.variables = {};
+      if ((typeof variables === 'undefined' ? 'undefined' : _typeof(variables)) == 'object') {
+        this.variables = variables;
+      }
 
-    var nodes = this.parser.parse();
-    var result;
-    nodes.forEach(function(node) {
-      result = this.visit(node);
-    }.bind(this));
-    return result;
+      this.callback = callback;
 
-  };
-
-}
+      var nodes = this.parser.parse();
+      var result;
+      nodes.forEach(function (node) {
+        result = this.visit(node);
+      }.bind(this));
+      return result;
+    }
+  }]);
+  return Interpreter;
+}();
 
 /**
  * Hemp
@@ -453,9 +599,10 @@ class Interpreter {
  * Copyright ©2017 Dana Basken <dbasken@gmail.com>
  *
  */
-class Lala {
+var Lala = function () {
+  function Lala() {
+    classCallCheck(this, Lala);
 
-  constructor() {
 
     this.lexicon = {
       ignore: {
@@ -464,13 +611,13 @@ class Lala {
       },
       identifier: {
         startTest: /[a-zA-Z]/,
-        test: /[a-zA-Z_]/
+        test: /[a-zA-Z_\.]/
       },
       number: {
         startTest: /[0-9\-]/,
         test: /[0-9\.]/
       },
-      string : {
+      string: {
         startTest: /["]/,
         scanner: 'string'
       },
@@ -488,64 +635,43 @@ class Lala {
     };
 
     this.grammar = {
-      operators: [
-        {value: '+', result: 'MathExpression'},
-        {value: '-', result: 'MathExpression'},
-        {value: '*', result: 'MathExpression'},
-        {value: '/', result: 'MathExpression'},
-        {value: '==', result: 'ComparisonExpression'},
-        {value: '!=', result: 'ComparisonExpression'},
-        {value: '<=', result: 'ComparisonExpression'},
-        {value: '>=', result: 'ComparisonExpression'},
-        {value: '>', result: 'ComparisonExpression'},
-        {value: '<', result: 'ComparisonExpression'},
-        {value: '||', result: 'LogicalExpression'},
-        {value: '&&', result: 'LogicalExpression'},
-        {value: '=', result: 'AssignmentExpression'}
-      ],
-      expressions: [
-        {
-          result: 'IfStatement',
-          rules: [
-            {type: 'identifier', value: 'if'},
-            {type: 'parenthesis', value: '('},
-            {parse: 'term', result: 'test'},
-            {type: 'parenthesis', value: ')'},
-            {parse: 'expression', result: 'consequence'},
-            {type: 'identifier', value: 'else', optional: true},
-            {parse: 'expression', result: 'alternate'}
-          ]
-        },
-        {
-          result: 'CallStatement',
-          rules: [
-            {type: 'identifier', values: ['hide', 'show']},
-            {type: 'parenthesis', value: '('},
-            {type: 'parenthesis', value: ')'}
-          ]
-        }
-      ]
-    };
-
-  };
-
-  check(text, variables) {
-    var lexer = new Lexer(this.lexicon, text);
-    var parser = new Parser(this.grammar, lexer);
-    return parser.parse();
-  };
-  
-  run(text, variables, callback) {
-    var lexer = new Lexer(this.lexicon, text);
-    var parser = new Parser(this.grammar, lexer);
-    var interpreter = new Interpreter(parser);
-    return {
-      returnValue: interpreter.run(variables, callback),
-      variables: interpreter.variables
+      operators: [{ value: '+', result: 'MathExpression' }, { value: '-', result: 'MathExpression' }, { value: '*', result: 'MathExpression' }, { value: '/', result: 'MathExpression' }, { value: '==', result: 'ComparisonExpression' }, { value: '!=', result: 'ComparisonExpression' }, { value: '<=', result: 'ComparisonExpression' }, { value: '>=', result: 'ComparisonExpression' }, { value: '>', result: 'ComparisonExpression' }, { value: '<', result: 'ComparisonExpression' }, { value: '||', result: 'LogicalExpression' }, { value: '&&', result: 'LogicalExpression' }, { value: '=', result: 'AssignmentExpression' }],
+      expressions: [{
+        result: 'IfStatement',
+        rules: [{ type: 'identifier', value: 'if' }, { type: 'parenthesis', value: '(' }, { parse: 'term', result: 'test' }, { type: 'parenthesis', value: ')' }, { parse: 'expression', result: 'consequence' }, { type: 'identifier', value: 'else', optional: true }, { parse: 'expression', result: 'alternate' }]
+      }, {
+        result: 'CallStatement',
+        rules: [{ type: 'identifier', values: ['hide', 'show'] }, { type: 'parenthesis', value: '(' }, { type: 'parenthesis', value: ')' }]
+      }, {
+        result: 'BooleanConstant',
+        rules: [{ type: 'identifier', values: ['true', 'false'] }]
+      }]
     };
   }
 
-}
+  createClass(Lala, [{
+    key: 'check',
+    value: function check(text, variables) {
+      var lexer = new Lexer(this.lexicon, text);
+      var parser = new Parser(this.grammar, lexer);
+      return parser.parse();
+    }
+  }, {
+    key: 'run',
+    value: function run(text, variables, callback) {
+      var lexer = new Lexer(this.lexicon, text);
+      var parser = new Parser(this.grammar, lexer);
+      var interpreter = new Interpreter(parser);
+      return {
+        returnValue: interpreter.run(variables, callback),
+        variables: interpreter.variables
+      };
+    }
+  }]);
+  return Lala;
+}();
+
+
 
 Lala.Parser = Parser;
 Lala.Lexer = Lexer;
@@ -555,3 +681,4 @@ Lala.InterpretError = InterpretError;
 return Lala;
 
 })));
+//# sourceMappingURL=Lala.umd.js.map
