@@ -718,8 +718,8 @@ var Interpreter = function () {
       if (node.operator === '*') {
         return this.visit(node.left) * this.visit(node.right);
       }
-      if (node.operator === '-') {
-        return this.visit(node.left) - this.visit(node.right);
+      if (node.operator === '/') {
+        return this.visit(node.left) / this.visit(node.right);
       }
       throw new InterpretError('Uknown operator: ' + node.operator, node);
     }
