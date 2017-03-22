@@ -6,22 +6,29 @@
  */
 import Parser from './Parser.js';
 import InterpretError from './InterpretError.js';
+import Formatter from './Formatter.js';
 
 class Interpreter {
 
   constructor(parser) {
     this.parser = parser;
   };
+  
+  visitFormatStatement(node) {
+    var format = this.visit(node.format);
+    var params = [this.visit(node.param)];
+    return Formatter.sprintf(format, params);
+  };
 
   visitUpperStatement(node) {
     var string = '' + this.visit(node.param);
     return string.toUpperCase();
-  }
+  };
 
   visitLowerStatement(node) {
     var string = '' + this.visit(node.param);
     return string.toLowerCase();
-  }
+  };
 
   strReverse(str) {
     return (str === '') ? '' : this.strReverse(str.substr(1)) + str.charAt(0);
@@ -85,9 +92,11 @@ class Interpreter {
 
   visitAssignmentExpression(node) {
     var value = this.visit(node.right);
+    /*
     if (!isNaN(value) && (typeof value !== 'boolean')) {
       value = parseFloat(value);
     }
+    */
     var properties = node.left.value.split('.');
     var object = this.variables;
     properties.forEach(function(property, index) {

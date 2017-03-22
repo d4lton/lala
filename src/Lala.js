@@ -41,6 +41,9 @@ class Lala {
       },
       braces: {
         startTest: /[{}]/
+      },
+      punctuation: {
+        startTest: /,/
       }
     };
 
@@ -60,7 +63,7 @@ class Lala {
         {value: '||', result: 'LogicalExpression'},
         {value: '&&', result: 'LogicalExpression'}
       ],
-      reserved: ['if', 'else', 'upper', 'lower'],
+      reserved: ['if', 'else', 'upper', 'lower', 'format'],
       expressions: [
         {
           type: 'identifier',
@@ -92,6 +95,16 @@ class Lala {
           value: 'lower',
           result: 'LowerStatement',
           rules: [
+            {parse: 'factor', result: 'param'}
+          ]
+        },
+        {
+          type: 'identifier',
+          value: 'format',
+          result: 'FormatStatement',
+          rules: [
+            {parse: 'factor', result: 'format'},
+            {type: 'punctuation', value: ','},
             {parse: 'factor', result: 'param'}
           ]
         }

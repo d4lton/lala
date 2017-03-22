@@ -446,7 +446,185 @@ function InterpretError(message, node) {
 InterpretError.prototype = new Error();
 
 /**
- * Hemp
+ * Formatter, repackaged from http://locutus.io/php/sprintf under MIT license
+ */
+var Formatter = function () {
+  function Formatter() {
+    classCallCheck(this, Formatter);
+  }
+
+  createClass(Formatter, null, [{
+    key: 'sprintf',
+    value: function sprintf() {
+
+      var regex = /%%|%(\d+\$)?([-+'#0 ]*)(\*\d+\$|\*|\d+)?(?:\.(\*\d+\$|\*|\d+))?([scboxXuideEfFgG])/g;
+      var a = arguments;
+      var i = 0;
+      var format = a[i++];
+
+      var _pad = function _pad(str, len, chr, leftJustify) {
+        if (!chr) {
+          chr = ' ';
+        }
+        var padding = str.length >= len ? '' : new Array(1 + len - str.length >>> 0).join(chr);
+        return leftJustify ? str + padding : padding + str;
+      };
+
+      var justify = function justify(value, prefix, leftJustify, minWidth, zeroPad, customPadChar) {
+        var diff = minWidth - value.length;
+        if (diff > 0) {
+          if (leftJustify || !zeroPad) {
+            value = _pad(value, minWidth, customPadChar, leftJustify);
+          } else {
+            value = [value.slice(0, prefix.length), _pad('', diff, '0', true), value.slice(prefix.length)].join('');
+          }
+        }
+        return value;
+      };
+
+      var _formatBaseX = function _formatBaseX(value, base, prefix, leftJustify, minWidth, precision, zeroPad) {
+        // Note: casts negative numbers to positive ones
+        var number = value >>> 0;
+        prefix = prefix && number && {
+          '2': '0b',
+          '8': '0',
+          '16': '0x'
+        }[base] || '';
+        value = prefix + _pad(number.toString(base), precision || 0, '0', false);
+        return justify(value, prefix, leftJustify, minWidth, zeroPad);
+      };
+
+      // _formatString()
+      var _formatString = function _formatString(value, leftJustify, minWidth, precision, zeroPad, customPadChar) {
+        if (precision !== null && precision !== undefined) {
+          value = value.slice(0, precision);
+        }
+        return justify(value, '', leftJustify, minWidth, zeroPad, customPadChar);
+      };
+
+      // doFormat()
+      var doFormat = function doFormat(substring, valueIndex, flags, minWidth, precision, type) {
+        var number, prefix, method, textTransform, value;
+
+        if (substring === '%%') {
+          return '%';
+        }
+
+        // parse flags
+        var leftJustify = false;
+        var positivePrefix = '';
+        var zeroPad = false;
+        var prefixBaseX = false;
+        var customPadChar = ' ';
+        var flagsl = flags.length;
+        var j;
+        for (j = 0; j < flagsl; j++) {
+          switch (flags.charAt(j)) {
+            case ' ':
+              positivePrefix = ' ';
+              break;
+            case '+':
+              positivePrefix = '+';
+              break;
+            case '-':
+              leftJustify = true;
+              break;
+            case "'":
+              customPadChar = flags.charAt(j + 1);
+              break;
+            case '0':
+              zeroPad = true;
+              customPadChar = '0';
+              break;
+            case '#':
+              prefixBaseX = true;
+              break;
+          }
+        }
+
+        // parameters may be null, undefined, empty-string or real valued
+        // we want to ignore null, undefined and empty-string values
+        if (!minWidth) {
+          minWidth = 0;
+        } else if (minWidth === '*') {
+          minWidth = +a[i++];
+        } else if (minWidth.charAt(0) === '*') {
+          minWidth = +a[minWidth.slice(1, -1)];
+        } else {
+          minWidth = +minWidth;
+        }
+
+        // Note: undocumented perl feature:
+        if (minWidth < 0) {
+          minWidth = -minWidth;
+          leftJustify = true;
+        }
+
+        if (!isFinite(minWidth)) {
+          throw new Error('sprintf: (minimum-)width must be finite');
+        }
+
+        if (!precision) {
+          precision = 'fFeE'.indexOf(type) > -1 ? 6 : type === 'd' ? 0 : undefined;
+        } else if (precision === '*') {
+          precision = +a[i++];
+        } else if (precision.charAt(0) === '*') {
+          precision = +a[precision.slice(1, -1)];
+        } else {
+          precision = +precision;
+        }
+
+        // grab value using valueIndex if required?
+        value = valueIndex ? a[valueIndex.slice(0, -1)] : a[i++];
+
+        switch (type) {
+          case 's':
+            return _formatString(value + '', leftJustify, minWidth, precision, zeroPad, customPadChar);
+          case 'c':
+            return _formatString(String.fromCharCode(+value), leftJustify, minWidth, precision, zeroPad);
+          case 'b':
+            return _formatBaseX(value, 2, prefixBaseX, leftJustify, minWidth, precision, zeroPad);
+          case 'o':
+            return _formatBaseX(value, 8, prefixBaseX, leftJustify, minWidth, precision, zeroPad);
+          case 'x':
+            return _formatBaseX(value, 16, prefixBaseX, leftJustify, minWidth, precision, zeroPad);
+          case 'X':
+            return _formatBaseX(value, 16, prefixBaseX, leftJustify, minWidth, precision, zeroPad).toUpperCase();
+          case 'u':
+            return _formatBaseX(value, 10, prefixBaseX, leftJustify, minWidth, precision, zeroPad);
+          case 'i':
+          case 'd':
+            number = +value || 0;
+            // Plain Math.round doesn't just truncate
+            number = Math.round(number - number % 1);
+            prefix = number < 0 ? '-' : positivePrefix;
+            value = prefix + _pad(String(Math.abs(number)), precision, '0', false);
+            return justify(value, prefix, leftJustify, minWidth, zeroPad);
+          case 'e':
+          case 'E':
+          case 'f': // @todo: Should handle locales (as per setlocale)
+          case 'F':
+          case 'g':
+          case 'G':
+            number = +value;
+            prefix = number < 0 ? '-' : positivePrefix;
+            method = ['toExponential', 'toFixed', 'toPrecision']['efg'.indexOf(type.toLowerCase())];
+            textTransform = ['toString', 'toUpperCase']['eEfFgG'.indexOf(type) % 2];
+            value = prefix + Math.abs(number)[method](precision);
+            return justify(value, prefix, leftJustify, minWidth, zeroPad)[textTransform]();
+          default:
+            return substring;
+        }
+      };
+
+      return format.replace(regex, doFormat);
+    }
+  }]);
+  return Formatter;
+}();
+
+/**
+ * Lala
  *
  * Copyright ©2017 Dana Basken <dbasken@gmail.com>
  *
@@ -459,6 +637,13 @@ var Interpreter = function () {
   }
 
   createClass(Interpreter, [{
+    key: 'visitFormatStatement',
+    value: function visitFormatStatement(node) {
+      var format = this.visit(node.format);
+      var params = [this.visit(node.param)];
+      return Formatter.sprintf(format, params);
+    }
+  }, {
     key: 'visitUpperStatement',
     value: function visitUpperStatement(node) {
       var string = '' + this.visit(node.param);
@@ -542,9 +727,11 @@ var Interpreter = function () {
     key: 'visitAssignmentExpression',
     value: function visitAssignmentExpression(node) {
       var value = this.visit(node.right);
-      if (!isNaN(value) && typeof value !== 'boolean') {
+      /*
+      if (!isNaN(value) && (typeof value !== 'boolean')) {
         value = parseFloat(value);
       }
+      */
       var properties = node.left.value.split('.');
       var object = this.variables;
       properties.forEach(function (property, index) {
@@ -638,7 +825,7 @@ var Interpreter = function () {
 }();
 
 /**
- * Hemp
+ * Lala
  *
  * Copyright ©2017 Dana Basken <dbasken@gmail.com>
  *
@@ -675,12 +862,15 @@ var Lala = function () {
       },
       braces: {
         startTest: /[{}]/
+      },
+      punctuation: {
+        startTest: /,/
       }
     };
 
     this.grammar = {
       operators: [{ value: '=', result: 'AssignmentExpression' }, { value: '+', result: 'MathExpression' }, { value: '-', result: 'MathExpression' }, { value: '*', result: 'MathExpression' }, { value: '/', result: 'MathExpression' }, { value: '==', result: 'ComparisonExpression' }, { value: '!=', result: 'ComparisonExpression' }, { value: '<=', result: 'ComparisonExpression' }, { value: '>=', result: 'ComparisonExpression' }, { value: '>', result: 'ComparisonExpression' }, { value: '<', result: 'ComparisonExpression' }, { value: '||', result: 'LogicalExpression' }, { value: '&&', result: 'LogicalExpression' }],
-      reserved: ['if', 'else', 'upper', 'lower'],
+      reserved: ['if', 'else', 'upper', 'lower', 'format'],
       expressions: [{
         type: 'identifier',
         value: 'if',
@@ -696,6 +886,11 @@ var Lala = function () {
         value: 'lower',
         result: 'LowerStatement',
         rules: [{ parse: 'factor', result: 'param' }]
+      }, {
+        type: 'identifier',
+        value: 'format',
+        result: 'FormatStatement',
+        rules: [{ parse: 'factor', result: 'format' }, { type: 'punctuation', value: ',' }, { parse: 'factor', result: 'param' }]
       }]
     };
   }
