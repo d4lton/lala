@@ -5,7 +5,7 @@
 }(this, (function () { 'use strict';
 
 /**
- * Hemp
+ * Lala
  *
  * Copyright ©2017 Dana Basken <dbasken@gmail.com>
  *
@@ -127,7 +127,7 @@ var set = function set(object, property, value, receiver) {
 };
 
 /**
- * Hemp
+ * Lala
  *
  * Copyright ©2017 Dana Basken <dbasken@gmail.com>
  *
@@ -318,7 +318,7 @@ var Parser = function () {
 }();
 
 /**
- * Hemp
+ * Lala
  *
  * Copyright ©2017 Dana Basken <dbasken@gmail.com>
  *
@@ -434,7 +434,7 @@ var Lexer = function () {
 }();
 
 /**
- * Hemp
+ * Lala
  *
  * Copyright ©2017 Dana Basken <dbasken@gmail.com>
  *
@@ -471,9 +471,19 @@ var Interpreter = function () {
       return string.toLowerCase();
     }
   }, {
+    key: 'strReverse',
+    value: function strReverse(str) {
+      return str === '' ? '' : this.strReverse(str.substr(1)) + str.charAt(0);
+    }
+  }, {
     key: 'visitMinusOperator',
     value: function visitMinusOperator(node) {
-      return -1 * this.visit(node.value);
+      var value = this.visit(node.value);
+      if (typeof value === 'string') {
+        return this.strReverse(value);
+      } else {
+        return -1 * value;
+      }
     }
   }, {
     key: 'visitBooleanConstant',
@@ -680,12 +690,12 @@ var Lala = function () {
         type: 'identifier',
         value: 'upper',
         result: 'UpperStatement',
-        rules: [{ type: 'parenthesis', value: '(' }, { parse: 'term', result: 'param' }, { type: 'parenthesis', value: ')' }]
+        rules: [{ parse: 'factor', result: 'param' }]
       }, {
         type: 'identifier',
         value: 'lower',
         result: 'LowerStatement',
-        rules: [{ type: 'parenthesis', value: '(' }, { parse: 'term', result: 'param' }, { type: 'parenthesis', value: ')' }]
+        rules: [{ parse: 'factor', result: 'param' }]
       }]
     };
   }

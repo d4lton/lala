@@ -23,8 +23,17 @@ class Interpreter {
     return string.toLowerCase();
   }
 
+  strReverse(str) {
+    return (str === '') ? '' : this.strReverse(str.substr(1)) + str.charAt(0);
+  };
+
   visitMinusOperator(node) {
-    return -1 * this.visit(node.value);
+    var value = this.visit(node.value);
+    if (typeof value === 'string') {
+      return this.strReverse(value);
+    } else {
+    return -1 * value;
+    }
   };
 
   visitBooleanConstant(node) {

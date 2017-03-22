@@ -84,9 +84,7 @@ class Lala {
           value: 'upper',
           result: 'UpperStatement',
           rules: [
-            {type: 'parenthesis', value: '('},
-            {parse: 'term', result: 'param'},
-            {type: 'parenthesis', value: ')'}
+            {parse: 'factor', result: 'param'}
           ]
         },
         {
@@ -94,9 +92,7 @@ class Lala {
           value: 'lower',
           result: 'LowerStatement',
           rules: [
-            {type: 'parenthesis', value: '('},
-            {parse: 'term', result: 'param'},
-            {type: 'parenthesis', value: ')'}
+            {parse: 'factor', result: 'param'}
           ]
         }
       ]
