@@ -155,6 +155,9 @@ var Parser = function () {
   }, {
     key: 'eat',
     value: function eat(type, value) {
+      if (!this.token) {
+        throw new ParseError('Expected ' + type + ': "' + value + '"', null, { type: type, value: value });
+      }
       if (this.token.type == type && (typeof value !== 'undefined' ? this.token.value == value : true)) {
         this.token = this.lexer.nextToken();
       } else {
@@ -169,7 +172,20 @@ var Parser = function () {
     key: 'factor',
     value: function factor() {
       var token = this.cloneCurrentToken();
-      if (token.type == 'number') {
+      if (token.type == 'parenthesis' && token.value == '(') {
+        this.eat(token.type, '(');
+        var result = this.term();
+        this.eat('parenthesis', ')');
+        return result;
+      } else if (token.type == 'operator' && token.value == '-') {
+        this.eat(token.type);
+        return {
+          type: 'MinusOperator',
+          value: this.term(),
+          start: token.start,
+          end: token.end
+        };
+      } else if (token.type == 'number') {
         this.eat(token.type);
         return {
           type: 'NumericConstant',
@@ -186,6 +202,9 @@ var Parser = function () {
           end: token.end
         };
       } else if (token.type == 'identifier') {
+        if (this.grammar.reserved.indexOf(token.value) !== -1) {
+          return this.expression();
+        }
         this.eat(token.type);
         var type = 'Variable';
         if (token.value == 'true' || token.value == 'false') {
@@ -198,11 +217,6 @@ var Parser = function () {
           start: token.start,
           end: token.end
         };
-      } else if (token.type == 'parenthesis') {
-        this.eat(token.type, '(');
-        var result = this.expression();
-        this.eat('parenthesis', ')');
-        return result;
       } else if (token.type == 'braces') {
         this.eat(token.type, '{');
         var result = this.block();
@@ -221,7 +235,7 @@ var Parser = function () {
         type: type,
         left: node,
         operator: token.value,
-        right: this.factor(),
+        right: this.term(),
         start: token.start,
         end: token.end
       };
@@ -249,96 +263,55 @@ var Parser = function () {
     key: 'expression',
     value: function expression() {
 
-      /*
-          var node = this.term();
-      
-          if (this.token) {
+      if (this.token) {
+        if (this.token.type === 'identifier' && this.grammar.reserved.indexOf(this.token.value) !== -1) {
           for (var i = 0; i < this.grammar.expressions.length; i++) {
-            var rules = this.grammar.expressions[i].rules;
-            if (rules && rules.length > 0) {
-              if (rules[0].type === this.token.type && rules[0].values.indexOf(this.token.value) !== -1) {
-                var node = {
-                  type: this.grammar.expressions[i].result,
-                  value: this.token.value,
-                  start: this.token.start,
-                  end: this.token.end
-                };
-                for (var j = 0; j < rules.length; j++) {
-                  var rule = rules[j];
-                  if (rule.optional === true && (!this.token || this.token.type != rule.type)) {
-                    break;
-                  }
-                  if (rule.parse) {
-                    node[rule.result] = this[rule.parse]();
-                  } else {
-                    this.eat(rule.type, rule.value);
-                  }
+            if (this.grammar.expressions[i].type === this.token.type && this.grammar.expressions[i].value === this.token.value) {
+              var node = {
+                type: this.grammar.expressions[i].result,
+                start: this.token.start,
+                end: this.token.end
+              };
+              this.eat(this.token.type, this.token.value);
+              var rules = this.grammar.expressions[i].rules;
+              for (var j = 0; j < rules.length; j++) {
+                var rule = rules[j];
+                if (rule.optional === true && (!this.token || this.token.type != rule.type || rule.values.indexOf(this.token.value) === -1)) {
+                  break;
                 }
-                return node;
+                if (rule.parse) {
+                  node[rule.result] = this[rule.parse]();
+                } else {
+                  this.eat(rule.type, rule.value);
+                }
               }
+              return node;
             }
-          }
-          }
-          return node;
-          */
-
-      for (var i = 0; i < this.grammar.expressions.length; i++) {
-        var rules = this.grammar.expressions[i].rules;
-        if (rules && rules.length > 0) {
-          if (rules[0].type === this.token.type && rules[0].values.indexOf(this.token.value) !== -1) {
-            var node = {
-              type: this.grammar.expressions[i].result,
-              value: this.token.value,
-              start: this.token.start,
-              end: this.token.end
-            };
-            for (var j = 0; j < rules.length; j++) {
-              var rule = rules[j];
-              if (rule.optional === true && (!this.token || this.token.type != rule.type)) {
-                break;
-              }
-              if (rule.parse) {
-                node[rule.result] = this[rule.parse]();
-              } else {
-                this.eat(rule.type, rule.value);
-              }
-            }
-            return node;
           }
         }
+        return this.term();
       }
-
-      return this.term();
     }
   }, {
     key: 'block',
     value: function block() {
-
       var node = {
         type: 'Block',
         nodes: []
       };
-
-      while (this.token && this.token.type !== 'braces' && this.token.value !== '}') {
+      while (this.token) {
+        if (this.token.type === 'braces' && this.token.value === '}') {
+          break;
+        }
         node.nodes.push(this.expression());
       }
-
       return node;
-    }
-  }, {
-    key: 'program',
-    value: function program() {
-      var nodes = [];
-      while (this.token) {
-        nodes.push(this.expression());
-      }
-      return nodes;
     }
   }, {
     key: 'parse',
     value: function parse() {
       this.reset();
-      return this.program();
+      return [this.block()];
     }
   }]);
   return Parser;
@@ -486,6 +459,23 @@ var Interpreter = function () {
   }
 
   createClass(Interpreter, [{
+    key: 'visitUpperStatement',
+    value: function visitUpperStatement(node) {
+      var string = '' + this.visit(node.param);
+      return string.toUpperCase();
+    }
+  }, {
+    key: 'visitLowerStatement',
+    value: function visitLowerStatement(node) {
+      var string = '' + this.visit(node.param);
+      return string.toLowerCase();
+    }
+  }, {
+    key: 'visitMinusOperator',
+    value: function visitMinusOperator(node) {
+      return -1 * this.visit(node.value);
+    }
+  }, {
     key: 'visitBooleanConstant',
     value: function visitBooleanConstant(node) {
       return node.value;
@@ -495,9 +485,8 @@ var Interpreter = function () {
     value: function visitBlock(node) {
       var result;
       node.nodes.forEach(function (root) {
-        result = this.visit(root);
+        this.visit(root);
       }.bind(this));
-      return result;
     }
   }, {
     key: 'visitNumericConstant',
@@ -550,7 +539,11 @@ var Interpreter = function () {
       var object = this.variables;
       properties.forEach(function (property, index) {
         if (index == properties.length - 1) {
-          object[property] = value;
+          if (typeof object[property] === 'string') {
+            object[property] = '' + value;
+          } else {
+            object[property] = value;
+          }
         } else {
           if (typeof object[property] === 'undefined') {
             object[property] = {};
@@ -620,16 +613,15 @@ var Interpreter = function () {
     value: function run(variables) {
 
       this.variables = {};
-      if ((typeof variables === 'undefined' ? 'undefined' : _typeof(variables)) == 'object') {
+      if ((typeof variables === 'undefined' ? 'undefined' : _typeof(variables)) === 'object') {
         this.variables = variables;
       }
 
       var nodes = this.parser.parse();
       var result;
       nodes.forEach(function (node) {
-        result = this.visit(node);
+        this.visit(node);
       }.bind(this));
-      return result;
     }
   }]);
   return Interpreter;
@@ -656,7 +648,7 @@ var Lala = function () {
         test: /[a-zA-Z_\.]/
       },
       number: {
-        startTest: /[0-9\-]/,
+        startTest: /[0-9]/,
         test: /[0-9\.]/
       },
       string: {
@@ -665,7 +657,7 @@ var Lala = function () {
       },
       operator: {
         startTest: /[\+\-\*\/><=|&!]/,
-        test: /[\+\-\*\/><=|&!]/,
+        test: /[\+\*\/><=|&!]/,
         values: ['=', '+', '-', '*', '/', '==', '!=', '>=', '<=', '<', '>', '||', '&&']
       },
       parenthesis: {
@@ -677,10 +669,23 @@ var Lala = function () {
     };
 
     this.grammar = {
-      operators: [{ value: '+', result: 'MathExpression' }, { value: '-', result: 'MathExpression' }, { value: '*', result: 'MathExpression' }, { value: '/', result: 'MathExpression' }, { value: '==', result: 'ComparisonExpression' }, { value: '!=', result: 'ComparisonExpression' }, { value: '<=', result: 'ComparisonExpression' }, { value: '>=', result: 'ComparisonExpression' }, { value: '>', result: 'ComparisonExpression' }, { value: '<', result: 'ComparisonExpression' }, { value: '||', result: 'LogicalExpression' }, { value: '&&', result: 'LogicalExpression' }, { value: '=', result: 'AssignmentExpression' }],
+      operators: [{ value: '=', result: 'AssignmentExpression' }, { value: '+', result: 'MathExpression' }, { value: '-', result: 'MathExpression' }, { value: '*', result: 'MathExpression' }, { value: '/', result: 'MathExpression' }, { value: '==', result: 'ComparisonExpression' }, { value: '!=', result: 'ComparisonExpression' }, { value: '<=', result: 'ComparisonExpression' }, { value: '>=', result: 'ComparisonExpression' }, { value: '>', result: 'ComparisonExpression' }, { value: '<', result: 'ComparisonExpression' }, { value: '||', result: 'LogicalExpression' }, { value: '&&', result: 'LogicalExpression' }],
+      reserved: ['if', 'else', 'upper', 'lower'],
       expressions: [{
+        type: 'identifier',
+        value: 'if',
         result: 'IfStatement',
-        rules: [{ type: 'identifier', values: ['if'] }, { type: 'parenthesis', value: '(' }, { parse: 'term', result: 'test' }, { type: 'parenthesis', value: ')' }, { parse: 'expression', result: 'consequence' }, { type: 'identifier', values: ['else'], optional: true }, { parse: 'expression', result: 'alternate' }]
+        rules: [{ type: 'parenthesis', value: '(' }, { parse: 'term', result: 'test' }, { type: 'parenthesis', value: ')' }, { type: 'braces', value: '{' }, { parse: 'block', result: 'consequence' }, { type: 'braces', value: '}' }, { type: 'identifier', values: ['else'], optional: true }, { type: 'braces', value: '{' }, { parse: 'block', result: 'alternate' }, { type: 'braces', value: '}' }]
+      }, {
+        type: 'identifier',
+        value: 'upper',
+        result: 'UpperStatement',
+        rules: [{ type: 'parenthesis', value: '(' }, { parse: 'term', result: 'param' }, { type: 'parenthesis', value: ')' }]
+      }, {
+        type: 'identifier',
+        value: 'lower',
+        result: 'LowerStatement',
+        rules: [{ type: 'parenthesis', value: '(' }, { parse: 'term', result: 'param' }, { type: 'parenthesis', value: ')' }]
       }]
     };
   }

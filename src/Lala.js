@@ -24,7 +24,7 @@ class Lala {
         test: /[a-zA-Z_\.]/
       },
       number: {
-        startTest: /[0-9\-]/,
+        startTest: /[0-9]/,
         test: /[0-9\.]/
       },
       string : {
@@ -33,7 +33,7 @@ class Lala {
       },
       operator: {
         startTest: /[\+\-\*\/><=|&!]/,
-        test: /[\+\-\*\/><=|&!]/,
+        test: /[\+\*\/><=|&!]/,
         values: ['=', '+', '-', '*', '/', '==', '!=', '>=', '<=', '<', '>', '||', '&&']
       },
       parenthesis: {
@@ -46,6 +46,7 @@ class Lala {
 
     this.grammar = {
       operators: [
+        {value: '=', result: 'AssignmentExpression'},
         {value: '+', result: 'MathExpression'},
         {value: '-', result: 'MathExpression'},
         {value: '*', result: 'MathExpression'},
@@ -57,20 +58,45 @@ class Lala {
         {value: '>', result: 'ComparisonExpression'},
         {value: '<', result: 'ComparisonExpression'},
         {value: '||', result: 'LogicalExpression'},
-        {value: '&&', result: 'LogicalExpression'},
-        {value: '=', result: 'AssignmentExpression'}
+        {value: '&&', result: 'LogicalExpression'}
       ],
+      reserved: ['if', 'else', 'upper', 'lower'],
       expressions: [
         {
+          type: 'identifier',
+          value: 'if',
           result: 'IfStatement',
           rules: [
-            {type: 'identifier', values: ['if']},
             {type: 'parenthesis', value: '('},
             {parse: 'term', result: 'test'},
             {type: 'parenthesis', value: ')'},
-            {parse: 'expression', result: 'consequence'},
+            {type: 'braces', value: '{'},
+            {parse: 'block', result: 'consequence'},
+            {type: 'braces', value: '}'},
             {type: 'identifier', values: ['else'], optional: true},
-            {parse: 'expression', result: 'alternate'}
+            {type: 'braces', value: '{'},
+            {parse: 'block', result: 'alternate'},
+            {type: 'braces', value: '}'},
+          ]
+        },
+        {
+          type: 'identifier',
+          value: 'upper',
+          result: 'UpperStatement',
+          rules: [
+            {type: 'parenthesis', value: '('},
+            {parse: 'term', result: 'param'},
+            {type: 'parenthesis', value: ')'}
+          ]
+        },
+        {
+          type: 'identifier',
+          value: 'lower',
+          result: 'LowerStatement',
+          rules: [
+            {type: 'parenthesis', value: '('},
+            {parse: 'term', result: 'param'},
+            {type: 'parenthesis', value: ')'}
           ]
         }
       ]

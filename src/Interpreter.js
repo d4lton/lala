@@ -12,7 +12,21 @@ class Interpreter {
   constructor(parser) {
     this.parser = parser;
   };
-  
+
+  visitUpperStatement(node) {
+    var string = '' + this.visit(node.param);
+    return string.toUpperCase();
+  }
+
+  visitLowerStatement(node) {
+    var string = '' + this.visit(node.param);
+    return string.toLowerCase();
+  }
+
+  visitMinusOperator(node) {
+    return -1 * this.visit(node.value);
+  };
+
   visitBooleanConstant(node) {
     return node.value;
   };
@@ -20,9 +34,8 @@ class Interpreter {
   visitBlock(node) {
     var result;
     node.nodes.forEach(function(root) {
-      result = this.visit(root);
+      this.visit(root);
     }.bind(this));
-    return result;
   };
 
   visitNumericConstant(node) {
@@ -70,7 +83,11 @@ class Interpreter {
     var object = this.variables;
     properties.forEach(function(property, index) {
       if (index == properties.length - 1) {
-        object[property] = value;
+        if (typeof object[property] === 'string') {
+          object[property] = '' + value;
+        } else {
+          object[property] = value;
+        }
       } else {
         if (typeof object[property] === 'undefined') {
           object[property] = {};
@@ -135,16 +152,15 @@ class Interpreter {
   run(variables) {
 
     this.variables = {};
-    if (typeof variables == 'object') {
+    if (typeof variables === 'object') {
       this.variables = variables;
     }
 
     var nodes = this.parser.parse();
     var result;
     nodes.forEach(function(node) {
-      result = this.visit(node);
+      this.visit(node);
     }.bind(this));
-    return result;
 
   };
 

@@ -24,6 +24,9 @@ class Parser {
   };
 
   eat(type, value) {
+    if (!this.token) {
+        throw new ParseError('Expected ' + type + ': "' + value + '"', null, {type: type, value: value});
+    }
     if (this.token.type == type && ((typeof value !== 'undefined') ? (this.token.value == value) : true)) {
       this.token = this.lexer.nextToken();
     } else {
@@ -37,7 +40,20 @@ class Parser {
 
   factor() {
     var token = this.cloneCurrentToken();
-    if (token.type == 'number') {
+    if (token.type == 'parenthesis' && token.value == '(') {
+      this.eat(token.type, '(');
+      var result = this.term();
+      this.eat('parenthesis', ')');
+      return result;
+    } else if (token.type == 'operator' && token.value == '-') {
+      this.eat(token.type);
+      return {
+        type: 'MinusOperator',
+        value: this.term(),
+        start: token.start,
+        end: token.end
+      }
+    } else if (token.type == 'number') {
       this.eat(token.type);
       return {
         type: 'NumericConstant',
@@ -54,6 +70,9 @@ class Parser {
         end: token.end
       };
     } else if (token.type == 'identifier') {
+      if (this.grammar.reserved.indexOf(token.value) !== -1) {
+        return this.expression();
+      }
       this.eat(token.type);
       var type = 'Variable';
       if (token.value == 'true' || token.value == 'false') {
@@ -66,11 +85,6 @@ class Parser {
         start: token.start,
         end: token.end
       }
-    } else if (token.type == 'parenthesis') {
-      this.eat(token.type, '(');
-      var result = this.expression();
-      this.eat('parenthesis', ')');
-      return result;
     } else if (token.type == 'braces') {
       this.eat(token.type, '{');
       var result = this.block();
@@ -88,7 +102,7 @@ class Parser {
       type: type,
       left: node,
       operator: token.value,
-      right: this.factor(),
+      right: this.term(),
       start: token.start,
       end: token.end
     };
@@ -115,95 +129,54 @@ class Parser {
 
   expression() {
 
-/*
-    var node = this.term();
-
     if (this.token) {
-    for (var i = 0; i < this.grammar.expressions.length; i++) {
-      var rules = this.grammar.expressions[i].rules;
-      if (rules && rules.length > 0) {
-        if (rules[0].type === this.token.type && rules[0].values.indexOf(this.token.value) !== -1) {
-          var node = {
-            type: this.grammar.expressions[i].result,
-            value: this.token.value,
-            start: this.token.start,
-            end: this.token.end
-          };
-          for (var j = 0; j < rules.length; j++) {
-            var rule = rules[j];
-            if (rule.optional === true && (!this.token || this.token.type != rule.type)) {
-              break;
+      if (this.token.type === 'identifier' && this.grammar.reserved.indexOf(this.token.value) !== -1) {
+        for (var i = 0; i < this.grammar.expressions.length; i++) {
+          if (this.grammar.expressions[i].type === this.token.type && this.grammar.expressions[i].value === this.token.value) {
+            var node = {
+              type: this.grammar.expressions[i].result,
+              start: this.token.start,
+              end: this.token.end
+            };
+            this.eat(this.token.type, this.token.value);
+            var rules = this.grammar.expressions[i].rules;
+            for (var j = 0; j < rules.length; j++) {
+              var rule = rules[j];
+              if (rule.optional === true && (!this.token || this.token.type != rule.type || rule.values.indexOf(this.token.value) === -1)) {
+                break;
+              }
+              if (rule.parse) {
+                node[rule.result] = this[rule.parse]();
+              } else {
+                this.eat(rule.type, rule.value);
+              }
             }
-            if (rule.parse) {
-              node[rule.result] = this[rule.parse]();
-            } else {
-              this.eat(rule.type, rule.value);
-            }
+            return node;
           }
-          return node;
         }
       }
+      return this.term();
     }
-    }
-    return node;
-    */
-
-
-    for (var i = 0; i < this.grammar.expressions.length; i++) {
-      var rules = this.grammar.expressions[i].rules;
-      if (rules && rules.length > 0) {
-        if (rules[0].type === this.token.type && rules[0].values.indexOf(this.token.value) !== -1) {
-          var node = {
-            type: this.grammar.expressions[i].result,
-            value: this.token.value,
-            start: this.token.start,
-            end: this.token.end
-          };
-          for (var j = 0; j < rules.length; j++) {
-            var rule = rules[j];
-            if (rule.optional === true && (!this.token || this.token.type != rule.type)) {
-              break;
-            }
-            if (rule.parse) {
-              node[rule.result] = this[rule.parse]();
-            } else {
-              this.eat(rule.type, rule.value);
-            }
-          }
-          return node;
-        }
-      }
-    }
-
-    return this.term();
 
   };
 
   block() {
-
     var node = {
       type: 'Block',
       nodes: []
     };
-
-    while (this.token && this.token.type !== 'braces' && this.token.value !== '}') {
+    while (this.token) {
+      if (this.token.type === 'braces' && this.token.value === '}') {
+        break;
+      }
       node.nodes.push(this.expression());
     }
-
     return node;
-  };
-
-  program() {
-    var nodes = [];
-    while (this.token) {
-      nodes.push(this.expression());
-    };
-    return nodes;
   };
 
   parse() {
     this.reset();
-    return this.program();
+    return [this.block()];
   };
 
 };
