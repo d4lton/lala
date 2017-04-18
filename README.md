@@ -12,9 +12,9 @@ b = 3;
 c = 4;
 tony = "pizza";
 if ((a * 4) + 1 == b || c > 2) {
-  a = a + 1;
+  object.visible = false
 } else {
-  hide();
+  object.visible = true
 }
 </code>
 </pre>
