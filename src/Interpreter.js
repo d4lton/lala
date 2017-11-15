@@ -65,12 +65,14 @@ class Interpreter {
   visitVariable(node) {
     var properties = node.value.split('.');
     var object = this.variables;
-    properties.forEach(function(property) {
-      if (typeof object[property] === 'undefined') {
-        throw new InterpretError('Unknown identifier: ' + node.value, node);
+    for (var i = 0; i < properties.length; i++) {
+      if (typeof object[properties[i]] === 'undefined') {
+        object = null;
+        break;
+      } else {
+        object = object[properties[i]];
       }
-      object = object[property];
-    });
+    }
     return object;
   };
 
