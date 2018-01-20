@@ -21,7 +21,7 @@ class Lala {
       },
       identifier: {
         startTest: /[a-zA-Z]/,
-        test: /[a-zA-Z_\.]/
+        test: /[a-zA-Z0-9_\.]/
       },
       number: {
         startTest: /[0-9]/,

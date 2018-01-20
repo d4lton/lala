@@ -706,14 +706,6 @@ var Interpreter = function () {
           object = object[properties[i]];
         }
       }
-      /*
-          properties.forEach(function(property) {
-            if (typeof object[property] === 'undefined') {
-              throw new InterpretError('Unknown identifier: ' + node.value, node);
-            }
-            object = object[property];
-          });
-      */
       return object;
     }
   }, {
@@ -852,7 +844,7 @@ var Lala = function () {
       },
       identifier: {
         startTest: /[a-zA-Z]/,
-        test: /[a-zA-Z_\.]/
+        test: /[a-zA-Z0-9_\.]/
       },
       number: {
         startTest: /[0-9]/,

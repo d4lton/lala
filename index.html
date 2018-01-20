@@ -21,7 +21,7 @@
             locked: true,
             visible: true
           }
-          var result = lala.run(text.value, {row: {id: 1, condition: 'used', msrp: 79.00, price: 29.99}, object: object}, function(name) {
+          var result = lala.run(text.value, {row: {id: 1, condition: 'used', msrp: 79.00, price: 29.99, test_column_2: 24.99}, object: object}, function(name) {
             output.value += "internal function '" + name + "' called\n";
           });
           output.value += JSON.stringify(result, null, 2);
