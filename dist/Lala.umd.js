@@ -773,6 +773,18 @@ var Interpreter = function () {
       if (node.operator === '>') {
         return this.visit(node.left) > this.visit(node.right);
       }
+      if (node.operator === '=~') {
+        try {
+          var haystack = this.visit(node.left).toString().toLowerCase();
+          var needle = this.visit(node.right).toString().toLowerCase();
+          var regex = new RegExp(needle, "ig");
+          var match = haystack.match(regex);
+          return match !== null;
+        } catch (error) {
+          console.log('match exception: ' + error);
+        }
+        return false;
+      }
       throw new InterpretError('Uknown operator: ' + node.operator, node);
     }
   }, {
@@ -856,8 +868,8 @@ var Lala = function () {
       },
       operator: {
         startTest: /[\+\-\*\/><=|&!]/,
-        test: /[\+\*\/><=|&!]/,
-        values: ['=', '+', '-', '*', '/', '==', '!=', '>=', '<=', '<', '>', '||', '&&']
+        test: /[\+\*\/><=|&!~]/,
+        values: ['=', '+', '-', '*', '/', '==', '!=', '>=', '<=', '<', '>', '=~', '||', '&&']
       },
       parenthesis: {
         startTest: /[\(\)]/
@@ -871,7 +883,7 @@ var Lala = function () {
     };
 
     this.grammar = {
-      operators: [{ value: '=', result: 'AssignmentExpression' }, { value: '+', result: 'MathExpression' }, { value: '-', result: 'MathExpression' }, { value: '*', result: 'MathExpression' }, { value: '/', result: 'MathExpression' }, { value: '==', result: 'ComparisonExpression' }, { value: '!=', result: 'ComparisonExpression' }, { value: '<=', result: 'ComparisonExpression' }, { value: '>=', result: 'ComparisonExpression' }, { value: '>', result: 'ComparisonExpression' }, { value: '<', result: 'ComparisonExpression' }, { value: '||', result: 'LogicalExpression' }, { value: '&&', result: 'LogicalExpression' }],
+      operators: [{ value: '=', result: 'AssignmentExpression' }, { value: '+', result: 'MathExpression' }, { value: '-', result: 'MathExpression' }, { value: '*', result: 'MathExpression' }, { value: '/', result: 'MathExpression' }, { value: '==', result: 'ComparisonExpression' }, { value: '!=', result: 'ComparisonExpression' }, { value: '<=', result: 'ComparisonExpression' }, { value: '>=', result: 'ComparisonExpression' }, { value: '>', result: 'ComparisonExpression' }, { value: '<', result: 'ComparisonExpression' }, { value: '=~', result: 'ComparisonExpression' }, { value: '||', result: 'LogicalExpression' }, { value: '&&', result: 'LogicalExpression' }],
       reserved: ['if', 'else', 'upper', 'lower', 'format'],
       expressions: [{
         type: 'identifier',

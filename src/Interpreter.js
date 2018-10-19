@@ -137,7 +137,18 @@ class Interpreter {
     if (node.operator === '>') {
       return this.visit(node.left) > this.visit(node.right);
     }
-    throw new InterpretError('Uknown operator: ' + node.operator, node);
+    if (node.operator === '=~') {
+      try {
+        var haystack = this.visit(node.left).toString().toLowerCase();
+        var needle = this.visit(node.right).toString().toLowerCase();
+        var regex = new RegExp(needle, "ig");
+        var match = haystack.match(regex);
+        return match !== null;
+      } catch (error) {
+        throw ('match exception: ' + error);
+        throw new InterpretError('match error: ' + node.operator, node);
+      }
+    }
   }
 
   visitLogicalExpression(node) {

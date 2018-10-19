@@ -33,8 +33,8 @@ class Lala {
       },
       operator: {
         startTest: /[\+\-\*\/><=|&!]/,
-        test: /[\+\*\/><=|&!]/,
-        values: ['=', '+', '-', '*', '/', '==', '!=', '>=', '<=', '<', '>', '||', '&&']
+        test: /[\+\*\/><=|&!~]/,
+        values: ['=', '+', '-', '*', '/', '==', '!=', '>=', '<=', '<', '>', '=~', '||', '&&']
       },
       parenthesis: {
         startTest: /[\(\)]/
@@ -60,6 +60,7 @@ class Lala {
         {value: '>=', result: 'ComparisonExpression'},
         {value: '>', result: 'ComparisonExpression'},
         {value: '<', result: 'ComparisonExpression'},
+        {value: '=~', result: 'ComparisonExpression'},
         {value: '||', result: 'LogicalExpression'},
         {value: '&&', result: 'LogicalExpression'}
       ],
