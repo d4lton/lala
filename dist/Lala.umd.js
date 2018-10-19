@@ -781,11 +781,10 @@ var Interpreter = function () {
           var match = haystack.match(regex);
           return match !== null;
         } catch (error) {
-          console.log('match exception: ' + error);
+          throw 'match exception: ' + error;
+          throw new InterpretError('match error: ' + node.operator, node);
         }
-        return false;
       }
-      throw new InterpretError('Uknown operator: ' + node.operator, node);
     }
   }, {
     key: 'visitLogicalExpression',
